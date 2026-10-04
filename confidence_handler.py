@@ -19,7 +19,8 @@ def check_confidence(stage: str, confidence: float, context: dict) -> bool:
 
     is_low = confidence < config.LOW_CONFIDENCE_THRESHOLD
     if is_low:
-        print(f"\n⚠️  LOW CONFIDENCE at [{stage}] stage: {confidence:.2f} "
+        # Plain ASCII: on the server a non-UTF-8 stdout must not crash a request.
+        print(f"\n[!] LOW CONFIDENCE at [{stage}] stage: {confidence:.2f} "
               f"(threshold {config.LOW_CONFIDENCE_THRESHOLD})")
         append_jsonl(config.WARNINGS_LOG_PATH, {
             "stage": stage,

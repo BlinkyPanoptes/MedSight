@@ -1,97 +1,135 @@
-# Medicine Identification Assistant — Local Prototype
+# MedSight — Medicine Identification Backend
 
-Implements the pipeline from `medicine-scanner-handoff.md`, Section 5, plus the
-three decisions from this round:
+An assistive tool that helps visually impaired users identify Philippine OTC
+and branded medicines, including blister pack foil, from the text printed on
+the packaging.
 
-1. **Description agent** — locked prompt (`description_agent.py`) that uses
-   Gemini's built-in `google_search` grounding tool, instructed to only trust
-   PH FDA sources (`fda.gov.ph`, `verification.fda.gov.ph`). It reports
-   whether it actually found/verified the product there (`grounded:
-   true/false`), rather than guessing. (Parse + description both run on
-   Gemini now instead of Claude — see the "LLM provider" note below.)
-2. **OCR engine** — decided by `benchmark_ocr.py`, not hardcoded. Whichever
-   of PaddleOCR / EasyOCR scores higher gets written to
-   `config/ocr_engine_choice.json`, which `main.py` reads at startup.
-3. **Low confidence** — any stage (OCR, name parsing, description) below
-   `LOW_CONFIDENCE_THRESHOLD` triggers a console warning, a spoken caveat,
-   and a line in `logs/warnings_log.jsonl`.
+- **Mobile app** (React Native, Expo dev build, separate repo): runs OCR on
+  the phone (Apple Vision on iOS, Google ML Kit on Android), sends the text to
+  this backend, and speaks the reply with `expo-speech`. No photos leave the
+  phone.
+- **Backend** (this repo, FastAPI): parses the brand, generic name and dosage
+  with an LLM, checks confidence, serves repeat scans from a cache, writes a
+  short description, and returns the exact text to speak.
+
+```
+phone OCR → POST /identify → parse (LLM) → confidence check → cache (SQLite)
+          → description (LLM, on a cache miss) → spoken_text → phone TTS
+```
 
 ## Setup
 
 ```bash
-python -m venv venv
-source venv/bin/activate      # Windows: venv\Scripts\activate
-pip install -r requirements.txt
-cp .env.example .env          # then fill in GEMINI_API_KEY
+python -m venv .venv
+.venv\Scripts\activate             # macOS/Linux: source .venv/bin/activate
+pip install -r requirements.txt    # server only
+cp .env.example .env               # then fill in GROQ_API_KEY and MEDSIGHT_API_KEY
 ```
 
-## LLM provider
+For the local webcam prototype and OCR benchmark, install
+`requirements-local.txt` instead. It adds OpenCV, PaddleOCR, EasyOCR and
+pyttsx3.
 
-Both the parse step (`llm_parse.py`) and the description agent
-(`description_agent.py`) run on Gemini (`google-genai` SDK), not Anthropic —
-swapped to use an existing near-unlimited Gemini plan and save on tokens.
-Grounding for the description agent uses Gemini's built-in `google_search`
-tool rather than Anthropic's `web_search`; behavior (search → ground in PH
-FDA sources → report `grounded: true/false`) is otherwise unchanged. Default
-model is `gemini-2.5-flash`, configurable via `GEMINI_MODEL` in `.env`.
+### Environment variables
 
-## 1. Benchmark OCR engines (run once, or whenever you want to re-check)
+| Variable | Default | Purpose |
+|---|---|---|
+| `LLM_PROVIDER` | `groq` | `groq`, or `ollama` for offline work |
+| `GROQ_API_KEY` | — | Groq API key |
+| `GROQ_MODEL` | `llama-3.3-70b-versatile` | Any Groq chat model that supports JSON mode |
+| `OLLAMA_HOST` / `OLLAMA_MODEL` | `http://localhost:11434` / `llama3.2:3b` | Used when `LLM_PROVIDER=ollama` |
+| `MEDSIGHT_API_KEY` | — | Shared secret the app sends as `X-API-Key`. If unset, `/identify` refuses every request. |
+| `LOW_CONFIDENCE_THRESHOLD` | `0.55` | Any stage below this gets a spoken caveat |
+| `MEDSIGHT_DATA_DIR` / `MEDSIGHT_LOGS_DIR` | `data/` / `logs/` | Point at a persistent disk on the cloud host |
 
-Download the Kaggle dataset locally first:
-https://www.kaggle.com/datasets/vencerlanz09/pharmaceutical-drugs-and-vitamins-dataset-v2
-
-It ships as one subfolder per product class (e.g. `Biogesic/`, `Bioflu/`, ...),
-which the benchmark uses as a proxy label for scoring hit-rate.
+## Run the backend
 
 ```bash
-python benchmark_ocr.py /path/to/kaggle_dataset_root
+uvicorn api:app --reload                     # local
+uvicorn api:app --host 0.0.0.0 --port $PORT  # cloud host
 ```
 
-This writes:
-- `config/ocr_benchmark_results.json` — full per-image results, for you to
-  spot-check manually (there's no real OCR ground truth in this dataset, so
-  treat the automatic winner as a strong hint, not gospel — see the note the
-  script prints at the end).
-- `config/ocr_engine_choice.json` — the winning engine, read by `main.py`.
+Interactive API docs are served at `/docs`.
 
-## 2. Run the live pipeline
+## API contract (for the mobile team)
+
+`POST /identify`, with header `X-API-Key: <MEDSIGHT_API_KEY>`.
+
+```json
+{
+  "text": "BIOGESIC\nParacetamol 500mg ...",
+  "lines": [{"text": "BIOGESIC", "confidence": 0.93}],
+  "ocr_confidence": 0.88,
+  "frames_merged": 4,
+  "platform": "android",
+  "app_version": "0.1.0"
+}
+```
+
+- `text` is all recognized text, joined with newlines (max 5000 characters).
+  If it's empty, the server joins `lines` instead.
+- `ocr_confidence` is optional. Send `null` if the OCR library doesn't report
+  one; the server then skips the OCR confidence check rather than treating it
+  as 0.
+
+Response (200):
+
+```json
+{
+  "status": "ok | low_confidence | rescan",
+  "brand_name": "Biogesic", "generic_name": "Paracetamol", "dosage": "500mg",
+  "description": "A pain reliever and fever reducer.",
+  "grounded": false, "source_url": null,
+  "warnings": ["FDA verification"],
+  "spoken_text": "Biogesic. A pain reliever and fever reducer. Note: ...",
+  "cache": "hit | miss | null"
+}
+```
+
+- **Always speak `spoken_text` exactly as sent.** It already includes the
+  safety caveats.
+- `rescan`: no text was read, or no medicine name was found. All name fields
+  are `null`, and `spoken_text` asks the user to try again.
+- `low_confidence`: at least one stage was below the threshold. `warnings`
+  lists which ones.
+
+Other responses:
+- **401:** missing or wrong API key.
+- **422:** the request body is invalid.
+- **503:** the LLM is busy or down (for example, the Groq rate limit), or the
+  server's API key isn't configured. When the LLM is the cause, the body
+  includes a `spoken_text` asking the user to retry.
+
+`GET /health` returns `{"status": "ok", "llm_provider": "..."}`.
+
+## Local webcam prototype
+
+`main.py` runs OCR on the laptop and then the same pipeline as the backend.
+It's useful for testing without the phone.
 
 ```bash
-python main.py
+python benchmark_ocr.py /path/to/kaggle_dataset_root   # once: picks PaddleOCR vs EasyOCR
+python main.py                                         # SPACE = capture, q = quit
 ```
 
-- `SPACE` — capture the current webcam frame and run it through the full
-  pipeline (OCR → parse → cache check → description if needed → speak).
-- `q` — quit.
+The benchmark uses the Kaggle
+[Pharmaceutical Drugs and Vitamins Dataset V2](https://www.kaggle.com/datasets/vencerlanz09/pharmaceutical-drugs-and-vitamins-dataset-v2).
+It has one subfolder per product, and the folder names are used as labels.
+The benchmark writes `config/ocr_engine_choice.json`, which `main.py` reads.
+There's no OCR ground truth in this dataset, so spot-check the results.
 
-Each run appends a full record (raw OCR text, parsed JSON, description,
-confidences, cache hit/miss) to `logs/run_log.jsonl`, per Section 5.7 of the
-handoff — this is what you'll use to manually score accuracy against the 20
-known Kaggle products.
+## Logs
 
-## 3. The Obsidian cache
+Every scan, from the app or the webcam, appends a full record to
+`logs/run_log.jsonl`: the OCR text, parsed fields, confidences, cache hit or
+miss, and the final spoken text. Low-confidence stages also go to
+`logs/warnings_log.jsonl`. These logs are how accuracy is scored by hand.
 
-`cache_vault/` is a plain folder of markdown notes with YAML frontmatter —
-open it directly in Obsidian if you want to browse, tag, or manually correct
-cached descriptions. Each note is keyed by a hash of
-`generic_name + brand_name + dosage` (normalized), so repeat scans of the same
-product skip the (paid) description-agent call entirely — that's the token
-savings from note #1.
+## Known limitations
 
-`cache_vault/index.json` is an internal key→filename map for fast lookups;
-don't hand-edit it (delete it and it'll silently rebuild as empty — cached
-notes will still be there but will need to be re-indexed manually or by
-clearing the vault and re-running).
-
-## Still open (per handoff Section 6)
-
-- Benchmark results should be spot-checked manually before fully trusting the
-  auto-picked OCR engine, since scoring is a heuristic (no ground-truth OCR
-  labels exist in the Kaggle set).
-- Confidence threshold (`0.55` default) is a starting guess — tune it once
-  you have real run logs to look at.
-
-## Explicitly not built here (Section 7)
-
-Mobile app, FastAPI server, server-side caching, smart glasses integration,
-shape/color classification — all still deferred.
+- **Descriptions are not FDA-verified yet.** They come from the LLM's
+  general knowledge, so `grounded` is always `false` and every reply carries a
+  "please double-check the label" caveat. The planned fix is to match names
+  against the PH FDA registered drug products list.
+- The confidence threshold is a starting guess. Tune it from real run logs.
+- Not built: smart-glasses integration, shape/color classification.

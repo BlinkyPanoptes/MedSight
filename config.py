@@ -15,20 +15,33 @@ except ImportError:
 BASE_DIR = Path(__file__).resolve().parent
 CACHE_VAULT_DIR = BASE_DIR / "cache_vault"          # Obsidian-compatible vault
 CACHE_INDEX_PATH = CACHE_VAULT_DIR / "index.json"    # key -> note filename
-LOGS_DIR = BASE_DIR / "logs"
+# On a cloud host, point these at a persistent disk so the cache and logs
+# survive redeploys.
+DATA_DIR = Path(os.environ.get("MEDSIGHT_DATA_DIR", BASE_DIR / "data"))
+CACHE_DB_PATH = DATA_DIR / "cache.sqlite"
+LOGS_DIR = Path(os.environ.get("MEDSIGHT_LOGS_DIR", BASE_DIR / "logs"))
 RUN_LOG_PATH = LOGS_DIR / "run_log.jsonl"
 WARNINGS_LOG_PATH = LOGS_DIR / "warnings_log.jsonl"
 OCR_ENGINE_CHOICE_PATH = BASE_DIR / "config" / "ocr_engine_choice.json"
 BENCHMARK_RESULTS_PATH = BASE_DIR / "config" / "ocr_benchmark_results.json"
 
-for d in (CACHE_VAULT_DIR, LOGS_DIR, OCR_ENGINE_CHOICE_PATH.parent):
+for d in (CACHE_VAULT_DIR, DATA_DIR, LOGS_DIR, OCR_ENGINE_CHOICE_PATH.parent):
     d.mkdir(parents=True, exist_ok=True)
 
-# --- API ---
-# Using Gemini instead of the Anthropic API for the parse + description
-# agent steps (cheaper/near-unlimited on an existing Gemini plan).
+# --- LLM provider (parse + description steps) ---
+# "groq" for the cloud backend, "ollama" for offline local work.
+LLM_PROVIDER = os.environ.get("LLM_PROVIDER", "groq").lower()
+GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "")
+GROQ_MODEL = os.environ.get("GROQ_MODEL", "llama-3.3-70b-versatile")
+GROQ_BASE_URL = os.environ.get("GROQ_BASE_URL", "https://api.groq.com/openai/v1")
 OLLAMA_HOST = os.environ.get("OLLAMA_HOST", "http://localhost:11434")
 OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "llama3.2:3b")
+
+# --- Backend API ---
+# Shared secret the mobile app sends in the X-API-Key header. If unset, the
+# API refuses every /identify request rather than running open.
+MEDSIGHT_API_KEY = os.environ.get("MEDSIGHT_API_KEY", "")
+MAX_OCR_TEXT_CHARS = 5000  # bounds LLM cost per request
 
 # --- Confidence handling (Section 6 / open item #3) ---
 # OCR/parse confidence is normalized to 0.0-1.0 before this check.

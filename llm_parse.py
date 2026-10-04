@@ -1,5 +1,5 @@
 """
-Step 3 of the pipeline: send raw OCR text to a local Ollama model and extract
+Step 3 of the pipeline: send raw OCR text to the LLM (see llm_client.py) and extract
 {generic_name, brand_name, dosage} as structured JSON, with a confidence score.
 
 Small local models tend to invent plausible-sounding names, so after parsing
@@ -10,7 +10,7 @@ import difflib
 import json
 import re
 
-import ollama_client
+import llm_client
 
 PARSE_SYSTEM_PROMPT = """You extract structured medicine info from noisy OCR text \
 scraped off Philippine OTC/branded medicine packaging.
@@ -59,7 +59,7 @@ def parse_medicine_text(raw_ocr_text: str) -> dict:
     if not raw_ocr_text.strip():
         return dict(_EMPTY)
 
-    reply = ollama_client.chat(PARSE_SYSTEM_PROMPT, f"OCR text:\n{raw_ocr_text}", schema=_SCHEMA)
+    reply = llm_client.chat(PARSE_SYSTEM_PROMPT, f"OCR text:\n{raw_ocr_text}", schema=_SCHEMA)
 
     try:
         parsed = json.loads(reply)

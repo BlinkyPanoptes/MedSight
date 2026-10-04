@@ -2,8 +2,8 @@
 Step 5 of the pipeline (cache miss path): a 1-2 sentence description of what
 the medicine is generally used for.
 
-IMPORTANT: a local Ollama model has no web access, so this CANNOT be checked
-against the PH FDA. The description comes from the model's memory only, so it
+IMPORTANT: the LLM (Groq or Ollama, see llm_client.py) has no web access, so
+this CANNOT be checked against the PH FDA. The description comes from the model's memory only, so it
 is always returned with grounded=False and a capped confidence. main.py then
 adds a spoken "please double-check the label" caveat automatically.
 
@@ -12,7 +12,7 @@ search-capable API or looks names up in a local FDA data export.
 """
 import json
 
-import ollama_client
+import llm_client
 
 DESCRIPTION_SYSTEM_PROMPT = """You write very short spoken-aloud descriptions of medicines \
 for a visually impaired user. Safety matters more than completeness.
@@ -44,7 +44,7 @@ def get_description(generic_name: str, brand_name: str, dosage: str) -> dict:
     parts = [p for p in (brand_name, generic_name, dosage) if p]
     query = "Medicine: " + ", ".join(parts) if parts else "Medicine: unknown"
 
-    reply = ollama_client.chat(DESCRIPTION_SYSTEM_PROMPT, query, schema=_SCHEMA, max_tokens=200)
+    reply = llm_client.chat(DESCRIPTION_SYSTEM_PROMPT, query, schema=_SCHEMA, max_tokens=200)
 
     try:
         parsed = json.loads(reply)
@@ -56,7 +56,7 @@ def get_description(generic_name: str, brand_name: str, dosage: str) -> dict:
 
     return {
         "description": description,
-        "grounded": False,          # no FDA lookup possible with a local model
+        "grounded": False,          # no FDA lookup yet (planned: PH FDA registry match)
         "source_url": None,
         "confidence": min(confidence, MAX_CONFIDENCE),
     }
