@@ -40,6 +40,12 @@ Design mockups: `Sample UI/MedSight Screens.pdf`.
 - Install packages with `npx expo install <package>`, not `npm install`.
 - Before committing, run `npx expo lint` and `npx tsc --noEmit`.
 
+## Git workflow
+- `main` is protected: nobody pushes to it directly. Changes reach `main` only through a pull request that @BlinkyPanoptes reviews and merges.
+- `dev` is the shared working branch. Start your work from `dev`: `git switch dev`, `git pull`, then `git switch -c your-feature-name`.
+- When your part works, push your branch and open a pull request **into `dev`**.
+- `dev` is merged into `main` by pull request once it is checked and working.
+
 ## Milestones
 | # | Milestone | Status |
 |---|---|---|
