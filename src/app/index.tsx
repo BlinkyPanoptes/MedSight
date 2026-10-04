@@ -1,98 +1,78 @@
-import * as Device from 'expo-device';
-import { Platform, StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { AppText } from "@/components/AppText";
+import { CornerButton } from "@/components/CornerButton";
+import { GuidancePill } from "@/components/GuidancePill";
+import { PrimaryButton } from "@/components/PrimaryButton";
+import { ScanFrame } from "@/components/ScanFrame";
+import { Screen } from "@/components/Screen";
+import { messages } from "@/constants/messages";
+import { colors, radii, spacing } from "@/theme/theme";
+import { router } from "expo-router";
+import { StyleSheet, View } from "react-native";
 
-import { AnimatedIcon } from '@/components/animated-icon';
-import { HintRow } from '@/components/hint-row';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { WebBadge } from '@/components/web-badge';
-import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
+export default function ScanScreen() {
+  function handleScan() {
+    // TODO: check connectivity, take the photo, then go to /checking
+    console.log("Scan pressed");
+  }
 
-function getDevMenuHint() {
-  if (Platform.OS === 'web') {
-    return <ThemedText type="small">use browser devtools</ThemedText>;
-  }
-  if (Device.isDevice) {
-    return (
-      <ThemedText type="small">
-        shake device or press <ThemedText type="code">m</ThemedText> in terminal
-      </ThemedText>
-    );
-  }
-  const shortcut = Platform.OS === 'android' ? 'cmd+m (or ctrl+m)' : 'cmd+d';
   return (
-    <ThemedText type="small">
-      press <ThemedText type="code">{shortcut}</ThemedText>
-    </ThemedText>
+    <Screen>
+      <View style={styles.topRow}>
+        <CornerButton
+          label={messages.scan.history}
+          icon="history"
+          onPress={() => router.push("/history")}
+        />
+        <CornerButton
+          label={messages.scan.settings}
+          icon="settings"
+          onPress={() => router.push("/settings")}
+        />
+      </View>
+
+      {/* TODO: replace this dark card with the live camera (expo-camera CameraView) */}
+      <View style={styles.camera}>
+        <AppText variant="body" bold style={styles.instruction}>
+          {messages.scan.instruction}
+        </AppText>
+        <View style={styles.frameArea}>
+          <ScanFrame />
+        </View>
+        <GuidancePill text={messages.scan.hint} />
+      </View>
+
+      <PrimaryButton
+        label={messages.scan.scanButton}
+        icon="camera"
+        onPress={handleScan}
+        accessibilityHint={messages.scan.scanButtonHint}
+      />
+    </Screen>
   );
 }
 
-export default function HomeScreen() {
-  return (
-    <ThemedView style={styles.container}>
-      <SafeAreaView style={styles.safeArea}>
-        <ThemedView style={styles.heroSection}>
-          <AnimatedIcon />
-          <ThemedText type="title" style={styles.title}>
-            Welcome to&nbsp;Expo
-          </ThemedText>
-        </ThemedView>
-
-        <ThemedText type="code" style={styles.code}>
-          get started
-        </ThemedText>
-
-        <ThemedView type="backgroundElement" style={styles.stepContainer}>
-          <HintRow
-            title="Try editing"
-            hint={<ThemedText type="code">src/app/index.tsx</ThemedText>}
-          />
-          <HintRow title="Dev tools" hint={getDevMenuHint()} />
-          <HintRow
-            title="Fresh start"
-            hint={<ThemedText type="code">npm run reset-project</ThemedText>}
-          />
-        </ThemedView>
-
-        {Platform.OS === 'web' && <WebBadge />}
-      </SafeAreaView>
-    </ThemedView>
-  );
-}
+// ─── STYLES ───
 
 const styles = StyleSheet.create({
-  container: {
+  topRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: spacing.md,
+  },
+  camera: {
     flex: 1,
-    justifyContent: 'center',
-    flexDirection: 'row',
+    marginVertical: spacing.md,
+    padding: spacing.md,
+    gap: spacing.md,
+    backgroundColor: colors.surface,
+    borderRadius: radii.xl,
+    overflow: "hidden",
   },
-  safeArea: {
+  instruction: {
+    textAlign: "center",
+  },
+  frameArea: {
     flex: 1,
-    paddingHorizontal: Spacing.four,
-    alignItems: 'center',
-    gap: Spacing.three,
-    paddingBottom: BottomTabInset + Spacing.three,
-    maxWidth: MaxContentWidth,
-  },
-  heroSection: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    flex: 1,
-    paddingHorizontal: Spacing.four,
-    gap: Spacing.four,
-  },
-  title: {
-    textAlign: 'center',
-  },
-  code: {
-    textTransform: 'uppercase',
-  },
-  stepContainer: {
-    gap: Spacing.three,
-    alignSelf: 'stretch',
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.four,
-    borderRadius: Spacing.four,
+    paddingHorizontal: spacing.md,
   },
 });
