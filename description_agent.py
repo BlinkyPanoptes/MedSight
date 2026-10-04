@@ -1,0 +1,62 @@
+"""
+Step 5 of the pipeline (cache miss path): a 1-2 sentence description of what
+the medicine is generally used for.
+
+IMPORTANT: a local Ollama model has no web access, so this CANNOT be checked
+against the PH FDA. The description comes from the model's memory only, so it
+is always returned with grounded=False and a capped confidence. main.py then
+adds a spoken "please double-check the label" caveat automatically.
+
+To get real FDA grounding later, swap this file for a version that calls a
+search-capable API or looks names up in a local FDA data export.
+"""
+import json
+
+import ollama_client
+
+DESCRIPTION_SYSTEM_PROMPT = """You write very short spoken-aloud descriptions of medicines \
+for a visually impaired user. Safety matters more than completeness.
+
+Return JSON with these fields:
+- description: 1-2 short plain sentences saying what the medicine is generally used for
+- confidence: number from 0 to 1 for how sure you are about this specific product
+
+Rules:
+- Only describe what the product is generally used for (for example "a pain reliever \
+and fever reducer"). Never give dosage instructions, doses, or medical advice.
+- If you do not clearly recognize the product, say "I don't recognize this product" \
+in the description and use a confidence below 0.3. Do not guess.
+- Do not mention websites or sources."""
+
+_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "description": {"type": "string"},
+        "confidence": {"type": "number"},
+    },
+    "required": ["description", "confidence"],
+}
+
+MAX_CONFIDENCE = 0.6  # unverified answers never rate higher than this
+
+
+def get_description(generic_name: str, brand_name: str, dosage: str) -> dict:
+    parts = [p for p in (brand_name, generic_name, dosage) if p]
+    query = "Medicine: " + ", ".join(parts) if parts else "Medicine: unknown"
+
+    reply = ollama_client.chat(DESCRIPTION_SYSTEM_PROMPT, query, schema=_SCHEMA, max_tokens=200)
+
+    try:
+        parsed = json.loads(reply)
+        description = (parsed.get("description") or "").strip()
+        confidence = float(parsed.get("confidence") or 0.0)
+    except (json.JSONDecodeError, ValueError):
+        description = "I could not generate a description for this product."
+        confidence = 0.0
+
+    return {
+        "description": description,
+        "grounded": False,          # no FDA lookup possible with a local model
+        "source_url": None,
+        "confidence": min(confidence, MAX_CONFIDENCE),
+    }
