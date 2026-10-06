@@ -49,9 +49,9 @@ Design mockups: `Sample UI/MedSight Screens.pdf`.
 ## Milestones
 | # | Milestone | Status |
 |---|---|---|
-| 1 | Foundation: clean project, `theme.ts`, `AppText`, `Screen`, `Icon`, buttons, empty screens | 🟡 In progress (`SecondaryButton` missing) |
-| 2 | More components: `InfoCard`, `StatusBanner`, `GuidancePill`, `ScanFrame`, `ListRow` | ⬜ Not started |
-| 3 | Settings + feedback: `ToggleRow`, `SegmentedControl`, `feedback.ts`, `SettingsContext` | ⬜ Not started |
+| 1 | Foundation: clean project, `theme.ts`, `AppText`, `Screen`, `Icon`, buttons (`PrimaryButton`, `SecondaryButton`, `CornerButton`), empty screens | ✅ Done |
+| 2 | More components: `InfoCard`, `StatusBanner`, `GuidancePill`, `ScanFrame`, `ListRow` (+ `HistoryRow`) | ✅ Done |
+| 3 | Settings + feedback: `ToggleRow`, `SegmentedControl`, `feedback.ts`, `SettingsContext` | 🟡 In progress (components done; `feedback.ts` and `SettingsContext` still to build) |
 | 4 | Scan → Checking → Result (mock API) | ⬜ Not started |
 | 5 | Offline + errors | ⬜ Not started |
 | 6 | History | ⬜ Not started |
@@ -68,13 +68,21 @@ This plan was made before the CSP221A project guide. It still needs to be checke
 - Placeholder screens with a working Back button: `checking`, `result`, `offline`, `history`, `settings`, `my-medicines`
 - `src/theme/theme.ts`: design tokens
 - `src/components/AppText.tsx`, `Screen.tsx`, `Icon.tsx` + `iconPaths.ts`, `PrimaryButton.tsx`, `CornerButton.tsx`, `ScanFrame.tsx`, `GuidancePill.tsx`
+- [ADDED OCT 7] `src/components/SecondaryButton.tsx`, `InfoCard.tsx`, `StatusBanner.tsx`, `ListRow.tsx`, `HistoryRow.tsx`, `ToggleRow.tsx`, `SegmentedControl.tsx`
 - `src/constants/messages.ts`: strings for the Scan screen
 - Setup: `expo-camera`, `expo-speech`, `expo-haptics`, `expo-sqlite`, `expo-image-manipulator`, `@react-native-community/netinfo`, `react-native-svg`, the Atkinson font package, and ESLint (`eslint.config.js`). `npx expo lint`, `npx tsc --noEmit` and `npx expo-doctor` all pass.
 
 ## In progress
 - (nothing)
 
-## Up next
+## Up next (ORIGINAL)
 - Components still to build: `SecondaryButton` (outlined, min height 80), `InfoCard`, `StatusBanner`, `ListRow`, `HistoryRow`, `ToggleRow`, `SegmentedControl`
 - Screens 2–7 from the PDF: Checking, Result (verified / not verified), No internet, History, Settings
 - Scan screen: live camera in place of the dark card, and the real Scan action
+
+## Up next (OCT 7)
+- Screens 2–7 from the PDF, using the finished components: Checking, Result (verified / not verified), No internet, History, Settings
+- Add the strings for those screens to `messages.ts` (Result, Offline, History, Settings, including the "On"/"Off" labels)
+- `feedback.ts` (speech + haptics, respecting the Vibration setting) and `SettingsContext`
+- Scan screen: live camera in place of the dark card, and the real Scan action
+- Optional cleanup: add a `borderWidths` token (2 and 3 are currently hard-coded in the components) and move the repeated badge sizes (56 / 36) in `StatusBanner` and `HistoryRow` into `theme.ts`
