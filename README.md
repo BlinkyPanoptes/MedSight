@@ -36,7 +36,7 @@ pyttsx3.
 |---|---|---|
 | `LLM_PROVIDER` | `groq` | `groq`, or `ollama` for offline work |
 | `GROQ_API_KEY` | — | Groq API key |
-| `GROQ_MODEL` | `llama-3.3-70b-versatile` | Any Groq chat model that supports JSON mode |
+| `GROQ_MODEL` | `qwen/qwen3.8-27b` | Any Groq chat model that supports JSON mode |
 | `OLLAMA_HOST` / `OLLAMA_MODEL` | `http://localhost:11434` / `llama3.2:3b` | Used when `LLM_PROVIDER=ollama` |
 | `MEDSIGHT_API_KEY` | — | Shared secret the app sends as `X-API-Key`. If unset, `/identify` refuses every request. |
 | `LOW_CONFIDENCE_THRESHOLD` | `0.55` | Any stage below this gets a spoken caveat |

@@ -5,6 +5,45 @@ can pick up where the last session left off. Newest entry first.
 
 ---
 
+## 2026-10-07 — Default Groq model switched to Qwen
+
+**Why:** the first real Groq test failed with HTTP 404 `model_not_found`.
+`llama-3.3-70b-versatile` is no longer offered (open item 5 from 2026-10-04).
+
+**Change:** the default `GROQ_MODEL` is now `qwen/qwen3.8-27b`, in
+`config.py`, `.env.example` and `README.md`.
+
+**Model comparison** (run through the real `llm_parse` and
+`description_agent` code):
+
+| Model | Result |
+|---|---|
+| `qwen/qwen3.8-27b` | All checks passed; fastest at about 0.6–0.9 s per call. **Chosen.** |
+| `openai/gpt-oss-20b` | All checks passed; about 0.8–1.2 s per call |
+| `openai/gpt-oss-120b` | One parse failed with HTTP 400 `json_validate_failed` |
+
+**Qwen reliability:** 15 parse calls (5 sample texts × 3 runs) produced 0
+failures. Garbled text came back with every field empty and confidence 0.1,
+which the pipeline turns into `rescan`.
+
+**New open items found in testing:**
+1. **Combination medicines lose ingredients.** For NEOZEP Forte (phenylephrine
+   + chlorphenamine + paracetamol), the parse returned only
+   `generic_name: "Paracetamol"` at confidence 0.95. For ALAXAN it listed both
+   ingredients. This conflicts with safety rule 2. A likely fix is to make
+   `generic_name` and `dosage` lists in the parse schema.
+2. **OCR errors pass through with high confidence.** `"Cetiri ine
+   Dihydrochloride"` was returned as-is at confidence 0.9. The
+   anti-hallucination check doesn't catch it, because the text really is in
+   the OCR output. Phase B registry matching would correct it.
+
+**Available Groq models** (as listed for this key on 2026-10-07): chat models
+`openai/gpt-oss-120b`, `openai/gpt-oss-20b`, `qwen/qwen3.8-27b` and
+`allam-2-7b` (4k context); the rest are speech and guard models. To check
+again, call `GET https://api.groq.com/openai/v1/models` with the key.
+
+---
+
 ## 2026-10-04 — Phase 2 backend (FastAPI + Groq)
 
 **Status:** working tree only. Nothing has been committed. Last commit:

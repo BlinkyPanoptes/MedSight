@@ -32,7 +32,7 @@ for d in (CACHE_VAULT_DIR, DATA_DIR, LOGS_DIR, OCR_ENGINE_CHOICE_PATH.parent):
 # "groq" for the cloud backend, "ollama" for offline local work.
 LLM_PROVIDER = os.environ.get("LLM_PROVIDER", "groq").lower()
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "")
-GROQ_MODEL = os.environ.get("GROQ_MODEL", "llama-3.3-70b-versatile")
+GROQ_MODEL = os.environ.get("GROQ_MODEL", "qwen/qwen3.8-27b")
 GROQ_BASE_URL = os.environ.get("GROQ_BASE_URL", "https://api.groq.com/openai/v1")
 OLLAMA_HOST = os.environ.get("OLLAMA_HOST", "http://localhost:11434")
 OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "llama3.2:3b")
