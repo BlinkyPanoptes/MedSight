@@ -22,7 +22,16 @@ uvicorn api:app --reload                          # backend; docs at /docs
 python main.py                                    # webcam loop: SPACE = capture + run pipeline, q = quit
 python benchmark_ocr.py <dataset_root>            # dataset path is required
 python sort_packaging_images.py <dataset_root> <output_dir> [--min-text-regions 3]
+python kb_build.py --check                        # validate the verified dataset in kb/
+python kb_build.py                                # validate + build data/kb.sqlite
+python kb_make_scans.py sorted_output/packaging   # draft eval scans from images
 ```
+
+`kb/` holds the hand-curated, two-person-checked dataset of the 10 supported
+medicines. `kb/README.md` explains how it's collected. **Never add or edit
+rows in `kb/*.csv` yourself.** Every value must come from the team's box
+photos and FDA portal lookups. Use fake data in a temp folder for tests. The
+FDA portal must not be scraped or automated.
 
 There's no test suite. To exercise the API without Groq, use FastAPI's
 `TestClient` with `LLM_PROVIDER=ollama` (Ollama running locally). Set

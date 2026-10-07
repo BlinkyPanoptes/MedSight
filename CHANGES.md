@@ -5,6 +5,63 @@ can pick up where the last session left off. Newest entry first.
 
 ---
 
+## 2026-10-08 — Verified dataset tooling (RAG plan, part 1)
+
+**Why:** descriptions must come from verified FDA data, not the LLM's memory.
+The prototype is limited to **10 medicines**, using a dataset the team builds
+by hand.
+
+**Research behind the decision:**
+- **FDA verification portal:**
+  - It has identity data (registration number, brand, generic, strength,
+    form, Rx/OTC, expiry) but **no indications**, and no bulk download.
+  - Its search API is protected by Cloudflare Turnstile; one plain request
+    got HTTP 429.
+  - **We don't scrape or bypass it.** Each lookup is done by a person in a
+    browser.
+- **PNF Essential Medicines List PDF:** generic names, forms and strengths
+  only; no indications, and most OTC combinations are missing.
+- **The product box or insert:** FDA-approved labeling. It has the
+  indications, and its printed registration number links it to the portal
+  record.
+
+**Added:**
+- `kb/products.csv`, `kb/ingredients.csv`, `kb/passages.csv` (header-only
+  templates) and `kb/eval/scans.jsonl` (empty). **No real data is entered
+  yet;** the team fills these in from evidence.
+- `kb/README.md`: step-by-step collection guide, column reference and
+  two-person check.
+- `kb_build.py`: validates the CSVs and builds `data/kb.sqlite` (tables plus
+  an FTS5 search index, and a `kb_version` hash of the CSVs). Use `--check`
+  to validate only.
+  - **Errors** (the build is refused):
+    - an empty required field
+    - an empty `checked_by`, or the same person as `entered_by`
+    - a different number of generics and strengths
+    - an unknown generic or product
+    - a product with no indications passage
+    - an expired registration
+    - a bad date, duplicate, wrong value, or an unquoted comma
+  - **Warnings:** an unusual registration number format, or a product count
+    other than 10.
+- `kb_make_scans.py`: runs local OCR over dataset images and writes
+  `kb/eval/scans_draft.jsonl`, so the test scans only need labels.
+- `config.KB_DIR` and `config.KB_DB_PATH`. `evidence/` is gitignored.
+
+**Verified:**
+- Fake fixtures in a temp folder: the valid set builds and FTS search finds
+  products by brand and ingredient; the invalid set produced 16 specific
+  errors.
+- The real empty `kb/` fails with "no products yet".
+- `kb_make_scans.py` produced a draft line from a real Biogesic image.
+
+**Next (part 2 of the plan):** `retrieval.py` (product matching), list-valued
+parsing, description generation from passages only (with a citation check
+and verbatim fallback), new `unsupported` status, API and README contract
+update, and `eval_kb.py`. This needs the first real rows in `kb/` to test.
+
+---
+
 ## 2026-10-07 — Default Groq model switched to Qwen
 
 **Why:** the first real Groq test failed with HTTP 404 `model_not_found`.

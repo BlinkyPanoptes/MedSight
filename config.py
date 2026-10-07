@@ -19,6 +19,10 @@ CACHE_INDEX_PATH = CACHE_VAULT_DIR / "index.json"    # key -> note filename
 # survive redeploys.
 DATA_DIR = Path(os.environ.get("MEDSIGHT_DATA_DIR", BASE_DIR / "data"))
 CACHE_DB_PATH = DATA_DIR / "cache.sqlite"
+# Verified medicine dataset: hand-curated CSVs in kb/, built into kb.sqlite
+# by kb_build.py.
+KB_DIR = BASE_DIR / "kb"
+KB_DB_PATH = DATA_DIR / "kb.sqlite"
 LOGS_DIR = Path(os.environ.get("MEDSIGHT_LOGS_DIR", BASE_DIR / "logs"))
 RUN_LOG_PATH = LOGS_DIR / "run_log.jsonl"
 WARNINGS_LOG_PATH = LOGS_DIR / "warnings_log.jsonl"

@@ -45,6 +45,9 @@ OCR -> LLM parse -> confidence check -> cache lookup -> description agent
 - `utils.py` - Shared utilities
 - `benchmark_ocr.py` - OCR benchmarking
 - `sort_packaging_images.py` - Sorts dataset images into `sorted_output/`
+- `kb/` - Verified dataset of the 10 supported medicines (see `kb/README.md`)
+- `kb_build.py` - Validates `kb/` and builds `data/kb.sqlite`
+- `kb_make_scans.py` - Drafts evaluation scans from dataset images
 
 Generated, gitignored folders (never commit them): `.venv/`, `cache_vault/`,
 `data/`, `logs/`, `sorted_output/`. Code that writes to `cache_vault/` must create it if it
