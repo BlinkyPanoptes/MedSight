@@ -7,6 +7,8 @@ can pick up where the last session left off. Newest entry first.
 
 ## 2026-10-08 — Unverified medicines get a warned, general description
 
+**Commit:** `72966aa`
+
 **Decision:** a scanned medicine that isn't one of the 10 verified ones still
 gets an LLM-generated general description, clearly marked as unverified. It
 isn't refused. This replaces the `unsupported` refusal from the RAG plan, and
@@ -43,6 +45,8 @@ the 10.
 ---
 
 ## 2026-10-08 — Verified dataset tooling (RAG plan, part 1)
+
+**Commit:** `7ee8b38`
 
 **Why:** descriptions must come from verified FDA data, not the LLM's memory.
 The prototype is limited to **10 medicines**, using a dataset the team builds
@@ -101,6 +105,8 @@ update, and `eval_kb.py`. This needs the first real rows in `kb/` to test.
 
 ## 2026-10-07 — Default Groq model switched to Qwen
 
+**Commit:** `5fb21f2`
+
 **Why:** the first real Groq test failed with HTTP 404 `model_not_found`.
 `llama-3.3-70b-versatile` is no longer offered (open item 5 from 2026-10-04).
 
@@ -140,8 +146,8 @@ again, call `GET https://api.groq.com/openai/v1/models` with the key.
 
 ## 2026-10-04 — Phase 2 backend (FastAPI + Groq)
 
-**Status:** working tree only. Nothing has been committed. Last commit:
-`b0b1ecd Initial commit: OCR + LLM medicine scanner prototype.`
+**Commit:** `4251fdf` (pushed to `origin/main`), on top of `b0b1ecd`, the initial
+prototype commit.
 
 ### Why
 
