@@ -75,8 +75,12 @@ a confident wrong answer is dangerous.
    confidence is low. Defer to `confidence_handler.py` and tell the user to
    rescan instead.
 2. Never silently fill in a missing or unreadable name, dosage, or field.
-3. Descriptions must be grounded in a reference source, not free-generated
-   from the model's memory. Do not fabricate medical information.
+3. Descriptions of the 10 verified medicines must come only from the
+   two-person-checked text in `kb/`. Any other medicine may get a general,
+   LLM-generated description, but only behind the spoken unverified warning,
+   which comes **before** the description, and with `grounded: false`. That
+   description must not include dosing advice, and must say "I don't
+   recognize this product" rather than guess.
 4. Never present an unverified description as confirmed fact.
 5. If the grounding source or confidence behavior is unclear, say so rather
    than assuming.

@@ -80,8 +80,8 @@ Response (200):
   "brand_name": "Biogesic", "generic_name": "Paracetamol", "dosage": "500mg",
   "description": "A pain reliever and fever reducer.",
   "grounded": false, "source_url": null,
-  "warnings": ["FDA verification"],
-  "spoken_text": "Biogesic. A pain reliever and fever reducer. Note: ...",
+  "warnings": ["not verified"],
+  "spoken_text": "Biogesic. Warning: this medicine is not in my verified list, ...",
   "cache": "hit | miss | null"
 }
 ```
@@ -90,8 +90,18 @@ Response (200):
   safety caveats.
 - `rescan`: no text was read, or no medicine name was found. All name fields
   are `null`, and `spoken_text` asks the user to try again.
-- `low_confidence`: at least one stage was below the threshold. `warnings`
+- `low_confidence`: the label may have been misread, because at least one
+  reading stage (OCR, name extraction) was below the threshold. `warnings`
   lists which ones.
+- `grounded`: whether the description comes from the verified dataset.
+  - `true`: one of the 10 verified medicines.
+  - `false`: any other medicine. The description is general AI-generated
+    information, `warnings` includes `"not verified"`, and `spoken_text`
+    gives the unverified warning **before** the description. It ends by
+    advising the user to check the label or ask a pharmacist. Consider a
+    distinct sound or vibration for these results.
+- `status` and `grounded` are independent. For example, a clearly read
+  medicine outside the verified list is `"ok"` with `grounded: false`.
 
 Other responses:
 - **401:** missing or wrong API key.
@@ -127,9 +137,9 @@ miss, and the final spoken text. Low-confidence stages also go to
 
 ## Known limitations
 
-- **Descriptions are not FDA-verified yet.** They come from the LLM's
-  general knowledge, so `grounded` is always `false` and every reply carries a
-  "please double-check the label" caveat. The planned fix is to match names
-  against the PH FDA registered drug products list.
+- **Verified answers aren't wired in yet.** The verified dataset for 10
+  medicines is being collected (see `kb/README.md`). Until the retrieval step
+  is built, every medicine gets the unverified, general description, with
+  its spoken warning.
 - The confidence threshold is a starting guess. Tune it from real run logs.
 - Not built: smart-glasses integration, shape/color classification.

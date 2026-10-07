@@ -7,7 +7,8 @@ identify() returns the API response shape:
     status       "ok" | "low_confidence" | "rescan"
     brand_name / generic_name / dosage   (None when not read)
     description, grounded, source_url
-    warnings     stages that need a caveat (e.g. "name extraction", "FDA verification")
+    warnings     stages that need a caveat (e.g. "name extraction"), plus
+                 "not verified" when the description isn't grounded
     spoken_text  exactly what the client should read aloud
     cache        "hit" | "miss" | None
 """
@@ -23,6 +24,10 @@ from utils import append_jsonl, normalize_key
 NO_TEXT_MESSAGE = ("I couldn't read any text on that packaging. "
                    "Please try again with better lighting or a closer shot.")
 NO_NAME_MESSAGE = "I read some text but couldn't identify a medicine name from it. Please try again."
+# Spoken for any medicine outside the verified dataset (description not grounded).
+UNVERIFIED_WARNING = ("Warning: this medicine is not in my verified list, so this is general "
+                      "information only and may be inaccurate.")
+UNVERIFIED_ADVICE = "Please check the label or ask a pharmacist before taking it."
 
 
 def _rescan(message: str, run_record: dict, outcome: str) -> dict:
@@ -100,19 +105,31 @@ def identify(raw_text: str, ocr_confidence: Optional[float], cache: CacheStore,
         cache_status = "miss"
     run_record["cache"] = cache_status
 
-    if check_confidence("description", desc_confidence, {"cache_key": cache_key}):
+    # An unverified description's confidence is capped below most thresholds,
+    # and the unverified warning already covers it, so only a grounded
+    # description adds a low-confidence stage. Status reflects how well the
+    # label was read; grounded says whether the information is verified.
+    desc_is_low = check_confidence("description", desc_confidence, {"cache_key": cache_key})
+    if grounded and desc_is_low:
         low_stages.append("description")
-    # Low confidence in any stage is reported as such; a missing FDA match
-    # only adds a caveat, since no description is FDA-grounded yet.
     status = "low_confidence" if low_stages else "ok"
-    if not grounded:
-        low_stages.append("FDA verification")
 
     # 5. Spoken output
     label = brand_name or generic_name
     # TTS needs the sentence break before the caveat; models often drop it.
     spoken_description = description if description.endswith((".", "!", "?")) else f"{description}."
-    spoken = f"{label}. {spoken_description} {build_spoken_caveat(low_stages)}".strip()
+    if grounded:
+        spoken = f"{label}. {spoken_description} {build_spoken_caveat(low_stages)}"
+    else:
+        # Warn before the description, not after: a listener may stop early.
+        # build_spoken_caveat ends with its own "double-check" advice, which
+        # would repeat UNVERIFIED_ADVICE, so name the shaky stages directly.
+        reading_caveat = (f"I'm also not fully confident in this reading: "
+                          f"{', '.join(low_stages)} confidence was low. ") if low_stages else ""
+        spoken = (f"{label}. {UNVERIFIED_WARNING} {spoken_description} "
+                  f"{reading_caveat}{UNVERIFIED_ADVICE}")
+    spoken = spoken.strip()
+    warnings = low_stages if grounded else [*low_stages, "not verified"]
 
     run_record["outcome"] = "success"
     run_record["status"] = status
@@ -123,5 +140,5 @@ def identify(raw_text: str, ocr_confidence: Optional[float], cache: CacheStore,
         "status": status,
         "brand_name": brand_name, "generic_name": generic_name, "dosage": dosage,
         "description": description, "grounded": grounded, "source_url": source_url,
-        "warnings": low_stages, "spoken_text": spoken, "cache": cache_status,
+        "warnings": warnings, "spoken_text": spoken, "cache": cache_status,
     }

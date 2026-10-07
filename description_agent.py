@@ -3,12 +3,12 @@ Step 5 of the pipeline (cache miss path): a 1-2 sentence description of what
 the medicine is generally used for.
 
 IMPORTANT: the LLM (Groq or Ollama, see llm_client.py) has no web access, so
-this CANNOT be checked against the PH FDA. The description comes from the model's memory only, so it
-is always returned with grounded=False and a capped confidence. main.py then
-adds a spoken "please double-check the label" caveat automatically.
+this CANNOT be checked against the PH FDA. The description comes from the
+model's memory only, so it is always returned with grounded=False and a capped
+confidence. pipeline.identify() then speaks an "unverified" warning before it.
 
-To get real FDA grounding later, swap this file for a version that calls a
-search-capable API or looks names up in a local FDA data export.
+This is the path for medicines outside the verified dataset in kb/. Verified
+medicines will get descriptions generated only from kb/ passages (planned).
 """
 import json
 

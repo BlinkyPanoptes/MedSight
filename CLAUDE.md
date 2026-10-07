@@ -63,11 +63,18 @@ everything after OCR and returns the response dict, including `spoken_text`.
    on several threads. Ungrounded descriptions are cached along with their
    `grounded` flag. `obsidian_cache.py` is the old markdown-vault cache and
    isn't used by the pipeline.
-4. **Describe** (`description_agent`). This only runs on a cache miss. It has
-   no reference source yet, so it always returns `grounded=False` and caps
-   confidence at `MAX_CONFIDENCE = 0.6`. That means "FDA verification" is in
-   `warnings` on every successful scan. If `LOW_CONFIDENCE_THRESHOLD` is
-   above 0.6, every fresh result is also `low_confidence`.
+4. **Describe** (`description_agent`). This only runs on a cache miss. Until
+   retrieval from `kb/` is built, it generates a general description from the
+   model's memory, returns `grounded=False`, and caps confidence at
+   `MAX_CONFIDENCE = 0.6`. The team decided (2026-10-08) that medicines
+   outside the 10 verified ones keep getting this unverified description;
+   they are not refused.
+   - For ungrounded results, `pipeline.identify()` speaks `UNVERIFIED_WARNING`
+     **before** the description and ends with `UNVERIFIED_ADVICE`.
+   - It adds `"not verified"` to `warnings`.
+   - It does *not* count the capped description confidence as a
+     low-confidence stage, so `status` only reflects how well the label was
+     read (OCR and parse).
 5. **Status and speech.** `confidence_handler.check_confidence()` is "log,
    don't block". It prints, appends to `warnings_log.jsonl`, and returns
    True. The only hard stops (`status: "rescan"`) are no text and no parsed

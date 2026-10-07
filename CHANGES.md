@@ -5,6 +5,43 @@ can pick up where the last session left off. Newest entry first.
 
 ---
 
+## 2026-10-08 — Unverified medicines get a warned, general description
+
+**Decision:** a scanned medicine that isn't one of the 10 verified ones still
+gets an LLM-generated general description, clearly marked as unverified. It
+isn't refused. This replaces the `unsupported` refusal from the RAG plan, and
+`AGENTS.md` safety rule 3 was updated to match.
+
+**Behavior (`pipeline.py`):**
+- **Spoken order:** the name, then the warning *"this medicine is not in my
+  verified list, so this is general information only and may be
+  inaccurate"*, then the description, then any reading caveat, then *"Please
+  check the label or ask a pharmacist before taking it."*
+- **Flags:** `grounded: false`, and `warnings` includes `"not verified"`. The
+  old `"FDA verification"` warning is gone.
+- **Status:** the capped (0.6) description confidence no longer counts as a
+  low-confidence stage. `status` now reflects only how well the label was
+  read, so a clearly read but unverified scan is `ok`. Before this change,
+  every scan was `low_confidence`.
+- **Safeguards kept:**
+  - no dosing advice
+  - "I don't recognize this product" instead of a guess
+  - the 0.6 confidence cap
+  - repeated reading-caveat advice merged into one sentence
+
+**Verified on Groq (`qwen/qwen3.8-27b`):**
+- A clear Biogesic scan was `ok` with the warning first.
+- NEOZEP with OCR confidence 0.4 was `low_confidence`, with both caveats and
+  no repeated advice.
+- An invented product ("ZORBAXIL") got "I don't recognize this product".
+- Empty text was still `rescan`.
+
+**Contract change for the mobile team:** see the README section on
+`grounded`. Plan part 2 still adds verified (`grounded: true`) answers for
+the 10.
+
+---
+
 ## 2026-10-08 — Verified dataset tooling (RAG plan, part 1)
 
 **Why:** descriptions must come from verified FDA data, not the LLM's memory.
