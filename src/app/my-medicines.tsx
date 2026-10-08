@@ -1,92 +1,85 @@
-import { Pressable, StyleSheet, View } from "react-native";
+import { router } from "expo-router";
+import { FlatList, StyleSheet, View } from "react-native";
 
 import { AppText } from "@/components/AppText";
-import { Icon } from "@/components/Icon";
-import { colors, radii, sizes, spacing } from "@/theme/theme";
+import { CornerButton } from "@/components/CornerButton";
+import { ListRow } from "@/components/ListRow";
+import { Screen } from "@/components/Screen";
+import { messages } from "@/constants/messages";
+import { MOCK_MEDICINES } from "@/services/mockMedicines";
+import { colors, spacing } from "@/theme/theme";
 
-type ListRowProps = {
-  label: string;
-  value?: string;
-  onPress?: () => void;
-  accessibilityHint?: string;
-};
-
-export function ListRow({
-  label,
-  value,
-  onPress,
-  accessibilityHint,
-}: ListRowProps) {
-  const spokenLabel = value ? `${label}, ${value}` : label;
-
-  // Display-only row: no chevron, not announced as a button.
-  if (!onPress) {
-    return (
-      <View
-        accessible
-        accessibilityRole="text"
-        accessibilityLabel={spokenLabel}
-        style={styles.row}
-      >
-        <AppText variant="title" bold style={styles.label}>
-          {label}
-        </AppText>
-        {value ? (
-          <AppText variant="body" bold color={colors.textMuted}>
-            {value}
-          </AppText>
-        ) : null}
-      </View>
-    );
-  }
-
+export default function MyMedicinesScreen() {
   return (
-    <Pressable
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityLabel={spokenLabel}
-      accessibilityHint={accessibilityHint}
-      style={({ pressed }) => [styles.row, pressed && styles.pressed]}
-    >
-      <AppText variant="title" bold style={styles.label}>
-        {label}
-      </AppText>
-      <View style={styles.trailing}>
-        {value ? (
-          <AppText variant="body" bold color={colors.textMuted}>
-            {value}
-          </AppText>
-        ) : null}
-        <Icon name="chevronRight" size={32} color={colors.textMuted} />
+    <Screen>
+      <View style={styles.header}>
+        <CornerButton
+          label={messages.common.back}
+          icon="back"
+          onPress={() => router.back()}
+          accessibilityHint={messages.common.backHint}
+        />
+        <AppText
+          variant="h1"
+          bold
+          accessibilityRole="header"
+          style={styles.title}
+        >
+          {messages.myMedicines.title}
+        </AppText>
       </View>
-    </Pressable>
+
+      <FlatList
+        data={MOCK_MEDICINES}
+        keyExtractor={(item) => item.id}
+        accessibilityLabel={messages.myMedicines.listLabel}
+        style={styles.list}
+        contentContainerStyle={styles.listContent}
+        // No onPress: rows are display-only until removal is designed.
+        renderItem={({ item }) => <ListRow label={item.name} />}
+        ListEmptyComponent={
+          <View accessible style={styles.empty}>
+            <AppText variant="title" bold>
+              {messages.myMedicines.empty}
+            </AppText>
+          </View>
+        }
+      />
+
+      <View accessible style={styles.footer}>
+        <AppText variant="bodySm" color={colors.textMuted}>
+          {messages.settings.myMedicinesHelp}
+        </AppText>
+      </View>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  row: {
-    width: "100%",
-    minHeight: sizes.cornerButton,
+  header: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
     gap: spacing.md,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    backgroundColor: colors.surface,
-    borderWidth: 2,
-    borderColor: colors.border,
-    borderRadius: radii.lg,
+    paddingBottom: spacing.md,
   },
-  pressed: {
-    backgroundColor: colors.surfaceRaised,
-  },
-  label: {
+  // "My medicines" at 40pt is wide next to the Back button, so it must be
+  // allowed to wrap on narrow phones.
+  title: {
     flexShrink: 1,
   },
-  trailing: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.xs,
+  list: {
+    flex: 1,
+  },
+  listContent: {
+    flexGrow: 1,
+    gap: spacing.sm,
+    paddingBottom: spacing.lg,
+  },
+  empty: {
+    paddingTop: spacing.lg,
+  },
+  footer: {
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.md,
   },
 });
