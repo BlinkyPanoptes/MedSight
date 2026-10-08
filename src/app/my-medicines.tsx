@@ -1,43 +1,92 @@
-import { AppText } from "@/components/AppText";
-import { CornerButton } from "@/components/CornerButton";
-import { Screen } from "@/components/Screen";
-import { messages } from "@/constants/messages";
-import { colors, spacing } from "@/theme/theme";
-import { router } from "expo-router";
-import { StyleSheet, View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
 
-// PLACEHOLDER: this screen is not built yet. Replace the body with the real
-// design (see "Sample UI/MedSight Screens.pdf"), reusing src/components.
-export default function MyMedicinesScreen() {
-  return (
-    <Screen>
-      <View style={styles.header}>
-        <CornerButton
-          label={messages.common.back}
-          icon="back"
-          onPress={() => router.back()}
-        />
-        <AppText variant="h1" bold style={styles.title}>
-          My medicines
+import { AppText } from "@/components/AppText";
+import { Icon } from "@/components/Icon";
+import { colors, radii, sizes, spacing } from "@/theme/theme";
+
+type ListRowProps = {
+  label: string;
+  value?: string;
+  onPress?: () => void;
+  accessibilityHint?: string;
+};
+
+export function ListRow({
+  label,
+  value,
+  onPress,
+  accessibilityHint,
+}: ListRowProps) {
+  const spokenLabel = value ? `${label}, ${value}` : label;
+
+  // Display-only row: no chevron, not announced as a button.
+  if (!onPress) {
+    return (
+      <View
+        accessible
+        accessibilityRole="text"
+        accessibilityLabel={spokenLabel}
+        style={styles.row}
+      >
+        <AppText variant="title" bold style={styles.label}>
+          {label}
         </AppText>
+        {value ? (
+          <AppText variant="body" bold color={colors.textMuted}>
+            {value}
+          </AppText>
+        ) : null}
       </View>
-      <AppText variant="body" color={colors.textMuted}>
-        {messages.common.notBuiltYet}
+    );
+  }
+
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={spokenLabel}
+      accessibilityHint={accessibilityHint}
+      style={({ pressed }) => [styles.row, pressed && styles.pressed]}
+    >
+      <AppText variant="title" bold style={styles.label}>
+        {label}
       </AppText>
-    </Screen>
+      <View style={styles.trailing}>
+        {value ? (
+          <AppText variant="body" bold color={colors.textMuted}>
+            {value}
+          </AppText>
+        ) : null}
+        <Icon name="chevronRight" size={32} color={colors.textMuted} />
+      </View>
+    </Pressable>
   );
 }
 
-// ─── STYLES ───
-
 const styles = StyleSheet.create({
-  header: {
+  row: {
+    width: "100%",
+    minHeight: sizes.cornerButton,
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
     gap: spacing.md,
-    marginBottom: spacing.lg,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    backgroundColor: colors.surface,
+    borderWidth: 2,
+    borderColor: colors.border,
+    borderRadius: radii.lg,
   },
-  title: {
+  pressed: {
+    backgroundColor: colors.surfaceRaised,
+  },
+  label: {
     flexShrink: 1,
+  },
+  trailing: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs,
   },
 });
