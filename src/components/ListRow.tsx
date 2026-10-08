@@ -7,7 +7,7 @@ import { colors, radii, sizes, spacing } from "@/theme/theme";
 type ListRowProps = {
   label: string;
   value?: string;
-  onPress: () => void;
+  onPress?: () => void;
   accessibilityHint?: string;
 };
 
@@ -17,11 +17,34 @@ export function ListRow({
   onPress,
   accessibilityHint,
 }: ListRowProps) {
+  const spokenLabel = value ? `${label}, ${value}` : label;
+
+  // Display-only row: no chevron, not announced as a button.
+  if (!onPress) {
+    return (
+      <View
+        accessible
+        accessibilityRole="text"
+        accessibilityLabel={spokenLabel}
+        style={styles.row}
+      >
+        <AppText variant="title" bold style={styles.label}>
+          {label}
+        </AppText>
+        {value ? (
+          <AppText variant="body" bold color={colors.textMuted}>
+            {value}
+          </AppText>
+        ) : null}
+      </View>
+    );
+  }
+
   return (
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel={value ? `${label}, ${value}` : label}
+      accessibilityLabel={spokenLabel}
       accessibilityHint={accessibilityHint}
       style={({ pressed }) => [styles.row, pressed && styles.pressed]}
     >
