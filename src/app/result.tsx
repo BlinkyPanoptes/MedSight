@@ -22,6 +22,9 @@ type ResultParams = {
   form?: ParamValue;
   onList?: ParamValue;
   doseNote?: ParamValue;
+  // The backend's own sentence. When present it is spoken instead of ours,
+  // because it carries the safety warnings.
+  spokenText?: ParamValue;
 };
 
 function first(value: ParamValue): string | undefined {
@@ -37,17 +40,27 @@ export default function ResultScreen() {
   const form = first(params.form);
   const onList = first(params.onList) === "true";
   const doseNote = first(params.doseNote);
+  const status = first(params.status);
 
   // Safety: show "Verified" only when the status says so AND the medicine
-  // details are complete. Anything else falls back to "Not verified".
+  // name and strength are known. Anything else falls back to a warning.
+  // (The backend does not send the form, so it is optional.)
   const verified =
-    first(params.status) === "verified" && name && strength && form
-      ? { name, strength, form }
+    status === "verified" && name && strength
+      ? { name, strength, form: form || undefined }
       : null;
 
-  const spokenText = verified
-    ? messages.result.verified.spoken({ ...verified, onList, doseNote })
-    : messages.result.notVerified.spoken;
+  // "unreadable": nothing usable was read. Otherwise: not verified.
+  const warning =
+    status === "unreadable"
+      ? messages.result.unreadable
+      : messages.result.notVerified;
+
+  const spokenText =
+    first(params.spokenText) ||
+    (verified
+      ? messages.result.verified.spoken({ ...verified, onList, doseNote })
+      : warning.spoken);
 
   // Speak when the screen opens, stop when it closes.
   useEffect(() => {
@@ -78,9 +91,7 @@ export default function ResultScreen() {
           <StatusBanner
             tone={verified ? "verified" : "warning"}
             label={
-              verified
-                ? messages.result.verified.banner
-                : messages.result.notVerified.banner
+              verified ? messages.result.verified.banner : warning.banner
             }
           />
         </View>
@@ -120,10 +131,10 @@ export default function ResultScreen() {
             <View style={styles.content}>
               <View style={styles.heading}>
                 <AppText variant="h1" bold>
-                  {messages.result.notVerified.headline}
+                  {warning.headline}
                 </AppText>
                 <AppText variant="body" color={colors.textMuted}>
-                  {messages.result.notVerified.body}
+                  {warning.body}
                 </AppText>
               </View>
 

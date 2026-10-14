@@ -1,5 +1,5 @@
 import NetInfo from "@react-native-community/netinfo";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { useEffect } from "react";
 import { StyleSheet, View } from "react-native";
 
@@ -15,13 +15,28 @@ import { colors, spacing } from "@/theme/theme";
 const FRAME_SIZE = 200;
 const ICON_SIZE = 96;
 
+type ParamValue = string | string[] | undefined;
+
+function first(value: ParamValue): string | undefined {
+  return Array.isArray(value) ? value[0] : value;
+}
+
 export default function OfflineScreen() {
+  // reason "server": the internet works but the backend failed or was too
+  // slow. Same layout, different words and icon.
+  const params = useLocalSearchParams<{
+    reason?: ParamValue;
+    spokenText?: ParamValue;
+  }>();
+  const isServerProblem = first(params.reason) === "server";
+  const copy = isServerProblem ? messages.serverError : messages.offline;
+  const spoken = first(params.spokenText) || copy.spoken;
   const { speak, stop } = useSpeech();
 
   useEffect(() => {
-    speak(messages.offline.spoken);
+    speak(spoken);
     return stop;
-  }, [speak, stop]);
+  }, [spoken, speak, stop]);
 
   async function handleTryAgain() {
     stop();
@@ -44,25 +59,29 @@ export default function OfflineScreen() {
     <Screen>
       <View style={styles.content}>
         <View style={styles.frame}>
-          <Icon name="wifiOff" size={ICON_SIZE} color={colors.accent} />
+          <Icon
+            name={isServerProblem ? "warning" : "wifiOff"}
+            size={ICON_SIZE}
+            color={colors.accent}
+          />
         </View>
 
         <View
           accessible
           accessibilityRole="header"
-          accessibilityLabel={messages.offline.spoken}
+          accessibilityLabel={copy.spoken}
           accessibilityLiveRegion="polite"
           style={styles.text}
         >
           <AppText variant="h1" bold style={styles.centered}>
-            {messages.offline.title}
+            {copy.title}
           </AppText>
           <AppText
             variant="body"
             color={colors.textMuted}
             style={styles.centered}
           >
-            {messages.offline.body}
+            {copy.body}
           </AppText>
         </View>
       </View>

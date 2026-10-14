@@ -10,12 +10,15 @@ Design mockups: `Sample UI/MedSight Screens.pdf`.
 ## Current state
 - Expo SDK 57 + React Native + TypeScript, expo-router (stack). Screens live in `src/app/`.
 - Design tokens, font and all planned reusable components are done (see "Reusable building blocks").
-- **All 8 screens are built** from the PDF: Scan, Checking, Result (verified / not verified), Offline, History, Settings, My medicines, plus a Voice picker (not in the PDF). They use mock data and are **not connected to each other by a real scan flow yet**.
-- Scan screen: the camera area is still a dark placeholder card (no live camera) and the Scan button only logs.
-- Result reads its data from route params (`status`, `name`, `strength`, `form`, `onList`, `doseNote`). Anything not clearly "verified" with complete details shows Not verified.
+- **All 8 screens are built** from the PDF: Scan, Checking, Result (verified / not verified), Offline, History, Settings, My medicines, plus a Voice picker (not in the PDF). 
+- **The scan flow is connected: Scan → Checking → Result (or Offline).** Scan checks the connection, Checking calls `identifyMedicine()` in `src/services/api.ts`, and the reply decides the screen. Cancel on Checking cancels the request.
+- **The app runs in mock mode until a backend URL is set** in `.env.local` (copy `.env.example`). Mock mode cycles through three fake replies: not verified, verified, unreadable.
+- **Live camera, but no OCR yet.** The Scan screen shows the back camera (`expo-camera` `CameraView`) and asks for camera permission ("Allow camera" button, spoken message). The Scan button does not take a photo yet: every scan sends the same sample label text from `src/services/ocr.ts`. The backend expects the phone to read the label text (OCR) and send only the text; that needs a development build, not Expo Go.
+- Result reads its data from route params (`status`: `verified` / `notVerified` / `unreadable`, `name`, `strength`, optional `form`, `onList`, `doseNote`, `spokenText`). It speaks the backend's `spokenText` when present. "Verified" shows only when the backend says the label was read clearly **and** the medicine is in its verified dataset.
+- Offline also shows server problems (`reason=server` param): different words and a warning icon.
 - Settings live in `SettingsContext` (**in memory only, reset on restart**). Speech speed and Voice are used by `useSpeech`. Vibration and High contrast are stored but nothing reads them yet.
-- Mock data: History is hard-coded in `history.tsx`; saved medicines come from `src/services/mockMedicines.ts` (used by Settings and My medicines).
-- `src/services/api.ts` and `src/types/` are still **empty**. Backend isn't connected. All network calls will go through `src/services/api.ts`.
+- **History and My medicines are real, stored on the phone** (`src/services/db.ts`, expo-sqlite). Every scan is saved to History (newest 50). On My medicines a caregiver can add a medicine (name + optional dose note) and remove one (with a confirmation). Settings shows the real saved count. When a scanned medicine's name matches a saved one, Result gets `onList` and the dose note.
+- Backend: separate repo (`MedSight-Backend`, FastAPI). `POST /identify` takes OCR text and returns the identification plus `spoken_text`. Its verified dataset is still empty, so the real backend currently answers "not verified" for every medicine. It has no endpoints for History or My medicines yet.
 
 ## Reusable building blocks — use these, don't make new ones
 
@@ -39,7 +42,13 @@ Design mockups: `Sample UI/MedSight Screens.pdf`.
 | `src/components/OptionRow.tsx` | Selectable list row (`radio` role): title, optional description, check icon + yellow border when selected. Min height 80 | `<OptionRow label="Samantha" description="English (US)" selected={on} onPress={fn} />` |
 | `src/context/SettingsContext.tsx` | `SettingsProvider` (wraps the app in `_layout.tsx`) and `useSettings()`: `speechSpeed`, `vibration`, `highContrast`, `voice` and their setters. In memory only | `const { speechSpeed, voice } = useSettings()` |
 | `src/hooks/useSpeech.ts` | Speaks text with the saved voice and speed. `speak` and `stop` are stable, safe in effect dependencies | `const { speak, stop } = useSpeech(); speak(text)` · never call `expo-speech` directly in screens |
-| `src/services/mockMedicines.ts` | Temporary saved-medicines list shared by Settings and My medicines | `import { MOCK_MEDICINES } from "@/services/mockMedicines"` |
+| `src/services/api.ts` | The **only** file that talks to the backend. `identifyMedicine(text, signal)` returns a `ScanResult`; failures are thrown as `ApiError` with a `kind` (`network`, `timeout`, `server`, `cancelled`) | `const result = await identifyMedicine(text, controller.signal)` · never call `fetch` in a screen |
+| `src/types/index.ts` | Shared types: `IdentifyResponse` (the backend's reply), `ScanResult` and `ScanStatus` (what screens use) | `import { ScanResult } from "@/types"` |
+| `src/services/ocr.ts` | `readLabelText()`: returns the text on the medicine box. **Temporary**: returns a sample label until real OCR is added | `const text = await readLabelText()` |
+| `src/services/mockData.ts` | Fake backend replies for mock mode | used only by `api.ts` |
+| `src/services/db.ts` | Local storage (expo-sqlite): `addHistory`, `getHistory`, `getMyMedicines`, `addMyMedicine`, `deleteMyMedicine`, `findMyMedicine`, `countMyMedicines`. **Interim**: to be replaced by backend API calls | `const items = await getHistory()` · never write SQL in a screen |
+| `src/components/TextField.tsx` | Labelled one-line text box with optional helper text | `<TextField label="Medicine name" value={name} onChangeText={setName} />` |
+| `src/components/MedicineRow.tsx` | Saved-medicine row: name, optional dose note, Remove button | `<MedicineRow name="…" doseNote="…" removeLabel="Remove" removeAccessibilityLabel="Remove …" onRemove={fn} />` |
 | `src/constants/messages.ts` | Every visible and spoken string | `import { messages } from "@/constants/messages"` then `messages.scan.instruction`. Add new strings here, not inside screens. |
 
 ## Conventions
@@ -66,10 +75,10 @@ Design mockups: `Sample UI/MedSight Screens.pdf`.
 | 1 | Foundation: clean project, `theme.ts`, `AppText`, `Screen`, `Icon`, buttons, empty screens | ✅ Done |
 | 2 | More components: `InfoCard`, `StatusBanner`, `GuidancePill`, `ScanFrame`, `ListRow` (+ `HistoryRow`) | ✅ Done |
 | 3 | Settings + feedback: `ToggleRow`, `SegmentedControl`, `SettingsContext`, speech | 🟡 In progress (components, context and `useSpeech` done; haptics via `feedback.ts` respecting Vibration, saving settings, and High contrast still to do) |
-| 4 | Scan → Checking → Result (mock API) | 🟡 In progress (Checking and Result screens built; the flow and mock API are not connected) |
-| 5 | Offline + errors | 🟡 In progress (Offline screen built, Try again checks NetInfo; the Scan screen doesn't route to it yet) |
-| 6 | History | 🟡 In progress (screen built with mock data; no database yet) |
-| 7 | My medicines (caregiver) | 🟡 In progress (screen built with mock data; no add or remove yet) |
+| 4 | Scan → Checking → Result (mock API) | 🟡 In progress (flow connected through `api.ts` with mock and real modes, tested against the real backend; live camera added; photo capture and OCR still to do) |
+| 5 | Offline + errors | 🟡 In progress (Scan routes to Offline when there is no internet; network, timeout and server errors are handled; not yet tested against the real backend) |
+| 6 | History | 🟡 In progress (every scan is saved on the phone and listed; rows don't open the old result; must move to the backend API) |
+| 7 | My medicines (caregiver) | 🟡 In progress (add and remove work, stored on the phone; no editing; must move to the backend API) |
 | 8 | Polish | ⬜ Not started |
 | 9 | Real API | ⬜ Not started |
 
@@ -86,19 +95,21 @@ This plan was made before the CSP221A project guide. It still needs to be checke
 - `src/constants/messages.ts`: strings for all screens, including spoken text and accessibility hints
 - Setup: `expo-camera`, `expo-speech`, `expo-haptics`, `expo-sqlite`, `expo-image-manipulator`, `@react-native-community/netinfo`, `react-native-svg`, the Atkinson font package, and ESLint (`eslint.config.js`). `npx expo lint`, `npx tsc --noEmit` and `npx expo-doctor` passed at setup; re-run them before the next commit.
 
+- Promo video (24 s, landscape, 3D iPhone model, generated music): a separate Remotion project in the sibling folder `MedSight-video` (not in this repo). The Scan screen is a picture; Checking and the two Result screens are redrawn as web components with values copied from `theme.ts` and `messages.ts`, so update the copies there if the app changes. Render with `npm run render`.
+
 ## In progress
 - (nothing)
 
 ## Up next
-- Scan flow: live camera (`expo-camera` `CameraView`) in place of the dark card; Scan checks connectivity (→ `/offline`), takes the photo, goes to `/checking`, then `/result` with a mock API result
-- Checking screen: speak `messages.checking.spoken` through `useSpeech`; Cancel should also abort the request
+- Test against the real backend: set `EXPO_PUBLIC_API_BASE_URL` in `.env.local` once it is running or deployed
+- Take the photo on Scan and run real OCR inside `readLabelText()` in `src/services/ocr.ts` (needs a development build, not Expo Go)
+- Show the backend's medicine name and description on the Not verified screen? Today it is only spoken
 - `feedback.ts`: haptic patterns for verified / not verified, respecting the Vibration setting (the button haptics also ignore it today)
 - Save settings so they survive an app restart (expo-sqlite is installed); apply High contrast
-- Replace mock data with real storage: History and saved medicines in expo-sqlite
+- Move History and My medicines from the phone (`db.ts`) to the backend: the course guide requires CRUD through the backend API. Needs new backend endpoints; then only the bodies of the functions in `db.ts` change
+- "Not on your list" warning on Result for a verified medicine that isn't saved (the list exists now)
 - Optional cleanup: add a `borderWidths` token (2, 3, 4 and 6 are hard-coded in components and screens) and move the repeated badge sizes (56 / 36) in `StatusBanner` and `HistoryRow` into `theme.ts`; add an `edges` option to `Screen` so the Result banner can fill the status bar area
 
 ## Open questions
-- Where does the "Add to my medicines" button go? Settings and My medicines both tell the user to tap it, but no screen has it. Probably the Verified result. Strings are ready in `messages.myMedicines.add`.
-- How does a caregiver remove a medicine? My medicines rows are display-only until this is designed.
 - Does the speech engine read "mg" correctly on real devices? If it spells "m g", convert to "milligrams" in the spoken text only.
 - Tune the speech rates in `useSpeech.ts` (slow 0.75, normal 1, fast 1.3) on real devices.

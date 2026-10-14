@@ -1,4 +1,5 @@
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
+import { useCallback, useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 
 import { AppText } from "@/components/AppText";
@@ -9,7 +10,7 @@ import { SegmentedControl } from "@/components/SegmentedControl";
 import { ToggleRow } from "@/components/ToggleRow";
 import { messages } from "@/constants/messages";
 import { SpeechSpeed, useSettings } from "@/context/SettingsContext";
-import { MOCK_MEDICINES } from "@/services/mockMedicines";
+import { countMyMedicines } from "@/services/db";
 import { colors, spacing } from "@/theme/theme";
 
 const SPEED_OPTIONS: { label: string; value: SpeechSpeed }[] = [
@@ -28,6 +29,25 @@ export default function SettingsScreen() {
     setHighContrast,
     voice,
   } = useSettings();
+
+  // How many medicines are saved. Counted again each time this screen comes
+  // to the front, so it is right after returning from My medicines.
+  const [savedCount, setSavedCount] = useState(0);
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      countMyMedicines()
+        .then((count) => {
+          if (active) {
+            setSavedCount(count);
+          }
+        })
+        .catch(() => {});
+      return () => {
+        active = false;
+      };
+    }, []),
+  );
 
   return (
     <Screen>
@@ -104,7 +124,7 @@ export default function SettingsScreen() {
 
           <ListRow
             label={messages.settings.myMedicines}
-            value={messages.settings.myMedicinesSaved(MOCK_MEDICINES.length)}
+            value={messages.settings.myMedicinesSaved(savedCount)}
             onPress={() => router.push("/my-medicines")}
             accessibilityHint={messages.settings.myMedicinesHint}
           />

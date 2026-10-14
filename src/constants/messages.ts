@@ -28,8 +28,18 @@ const notVerifiedSteps = [
   "Or ask someone you trust to check it.",
 ];
 
+const cameraNeededTitle = "Camera access needed";
+const cameraNeededBody = "MedSight uses the camera to read the medicine box.";
+
 const offlineTitle = "No internet";
 const offlineBody = "MedSight needs internet to identify medicines.";
+
+const unreadableBanner = "Could not read";
+const unreadableHeadline = "Couldn’t read the label.";
+const unreadableBody = "MedSight could not find a medicine name on the box.";
+
+const serverErrorTitle = "Server problem";
+const serverErrorBody = "MedSight could not reach its server. Try again in a moment.";
 
 const addToMyMedicines = "Add to my medicines";
 const phoneDefaultVoice = "Phone default";
@@ -38,9 +48,15 @@ export const messages = {
   // ─── Scan screen ───
   scan: {
     instruction: "Point the camera at the medicine box",
-    hint: "Move closer",
+    hint: "Hold the box inside the frame",
     scanButton: "Scan",
     scanButtonHint: "Takes a photo of the medicine box",
+    // Shown instead of the camera until the user allows camera access.
+    cameraNeededTitle: cameraNeededTitle,
+    cameraNeededBody: cameraNeededBody,
+    cameraNeededSpoken: `${cameraNeededTitle}. ${cameraNeededBody}`,
+    allowCamera: "Allow camera",
+    allowCameraHint: "Asks for permission to use the camera",
     history: "History",
     historyHint: "Shows the medicines you scanned before",
     settings: "Settings",
@@ -71,14 +87,15 @@ export const messages = {
       banner: "Verified",
       onListLabel: onYourList,
       // Shown under the medicine name, e.g. "500 mg · Tablet"
-      details: (strength: string, form: string) => `${strength} · ${form}`,
+      details: (strength: string, form?: string) =>
+        form ? `${strength} · ${form}` : strength,
       // Spoken when the result appears and when the user repeats it,
       // e.g. "Verified. Paracetamol. 500 mg. Tablet." Periods make the
       // voice pause between the parts.
       spoken: (info: {
         name: string;
         strength: string;
-        form: string;
+        form?: string;
         onList: boolean;
         doseNote?: string;
       }) =>
@@ -86,7 +103,7 @@ export const messages = {
           "Verified.",
           `${info.name}.`,
           `${info.strength}.`,
-          `${info.form}.`,
+          info.form ? `${info.form}.` : "",
           info.onList ? `${onYourList}.` : "",
           info.doseNote ?? "",
         ]
@@ -108,6 +125,13 @@ export const messages = {
         ...notVerifiedSteps,
       ].join(" "),
     },
+    // The label could not be read at all (no text, or no medicine name).
+    unreadable: {
+      banner: unreadableBanner,
+      headline: unreadableHeadline,
+      body: unreadableBody,
+      spoken: `${unreadableHeadline} ${unreadableBody} ${notVerifiedSteps.join(" ")}`,
+    },
     tapToRepeat: "Tap anywhere to hear it again",
     repeat: "Repeat",
     repeatHint: "Reads the result out loud again",
@@ -124,6 +148,13 @@ export const messages = {
     openHistoryHint: "Shows the medicines you scanned before",
     tryAgain: "Try again",
     tryAgainHint: "Checks the connection and returns to the camera",
+  },
+
+  // ─── Server problem (shown on the Offline screen layout) ───
+  serverError: {
+    title: serverErrorTitle,
+    body: serverErrorBody,
+    spoken: `${serverErrorTitle}. ${serverErrorBody}`,
   },
 
   // ─── History screen ───
@@ -170,7 +201,7 @@ export const messages = {
     myMedicinesSaved: (count: number) =>
       count === 0 ? "None saved" : `${count} saved`,
     myMedicinesHint: "Opens the list of medicines saved by a caregiver",
-    myMedicinesHelp: `Add a medicine by scanning its box once, then tap “${addToMyMedicines}”.`,
+    myMedicinesHelp: `Medicines saved here are marked “${onYourList}” when they are scanned.`,
   },
 
   // ─── Voice screen ───
@@ -207,7 +238,16 @@ export const messages = {
     title: "My medicines",
     listLabel: "Saved medicines",
     empty: "No medicines saved yet.",
-    emptyHint: `Scan a medicine box once, then tap “${addToMyMedicines}”.`,
+    emptyHint: "Add the medicines this person takes, using the form above.",
+    nameLabel: "Medicine name",
+    nameHelper: "As written on the box: the brand and the strength.",
+    doseNoteHelper: "Optional. A reminder that is read out with this medicine.",
+    nameMissing: "Type the medicine name first.",
+    alreadySaved: (name: string) => `${name} is already on the list.`,
+    saveFailed: "Could not save. Please try again.",
+    removeConfirmTitle: (name: string) => `Remove ${name}?`,
+    removeConfirmBody: "It will no longer be marked as on your list.",
+    removeCancel: "Cancel",
     add: addToMyMedicines,
     addHint: "Saves this medicine to the list MedSight checks against",
     added: (name: string) => `${name} added to my medicines.`,
