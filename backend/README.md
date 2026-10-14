@@ -4,11 +4,11 @@ An assistive tool that helps visually impaired users identify Philippine OTC
 and branded medicines, including blister pack foil, from the text printed on
 the packaging.
 
-- **Mobile app** (React Native, Expo dev build, separate repo): runs OCR on
+- **Mobile app** (React Native + Expo, in the root of this repo): runs OCR on
   the phone (Apple Vision on iOS, Google ML Kit on Android), sends the text to
   this backend, and speaks the reply with `expo-speech`. No photos leave the
   phone.
-- **Backend** (this repo, FastAPI): parses the brand, generic name and dosage
+- **Backend** (this folder, FastAPI): parses the brand, generic name and dosage
   with an LLM, checks confidence, serves repeat scans from a cache, writes a
   short description, and returns the exact text to speak.
 
@@ -16,6 +16,24 @@ the packaging.
 phone OCR → POST /identify → parse (LLM) → confidence check → cache (SQLite)
           → description (LLM, on a cache miss) → spoken_text → phone TTS
 ```
+
+## Folder structure
+
+This backend lives in the `backend/` folder of the MedSight repo, next to the
+mobile app. Run every command below from inside `backend/`.
+
+```
+backend/
+├── app/        the server: what the cloud host runs (uvicorn app.api:app)
+├── scripts/    laptop-only tools: webcam prototype, OCR benchmark, dataset builders
+├── kb/         the verified medicine dataset (CSV files)
+├── requirements.txt         server packages
+├── requirements-local.txt   server + laptop-tool packages (OCR, webcam, TTS)
+└── .env.example             copy to .env and fill in
+```
+
+Scripts run as modules, so they can import the server code:
+`python -m scripts.kb_build --check`.
 
 ## Setup
 
@@ -45,8 +63,8 @@ pyttsx3.
 ## Run the backend
 
 ```bash
-uvicorn api:app --reload                     # local
-uvicorn api:app --host 0.0.0.0 --port $PORT  # cloud host
+uvicorn app.api:app --reload                     # local
+uvicorn app.api:app --host 0.0.0.0 --port $PORT  # cloud host
 ```
 
 Interactive API docs are served at `/docs`.
@@ -114,18 +132,18 @@ Other responses:
 
 ## Local webcam prototype
 
-`main.py` runs OCR on the laptop and then the same pipeline as the backend.
+`scripts/main.py` runs OCR on the laptop and then the same pipeline as the backend.
 It's useful for testing without the phone.
 
 ```bash
-python benchmark_ocr.py /path/to/kaggle_dataset_root   # once: picks PaddleOCR vs EasyOCR
-python main.py                                         # SPACE = capture, q = quit
+python -m scripts.benchmark_ocr /path/to/kaggle_dataset_root   # once: picks PaddleOCR vs EasyOCR
+python -m scripts.main                                         # SPACE = capture, q = quit
 ```
 
 The benchmark uses the Kaggle
 [Pharmaceutical Drugs and Vitamins Dataset V2](https://www.kaggle.com/datasets/vencerlanz09/pharmaceutical-drugs-and-vitamins-dataset-v2).
 It has one subfolder per product, and the folder names are used as labels.
-The benchmark writes `config/ocr_engine_choice.json`, which `main.py` reads.
+The benchmark writes `config/ocr_engine_choice.json`, which `scripts/main.py` reads.
 There's no OCR ground truth in this dataset, so spot-check the results.
 
 ## Logs

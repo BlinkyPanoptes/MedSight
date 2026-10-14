@@ -7,24 +7,24 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 The imported `AGENTS.md` holds the project overview, scope limits, medical
 safety rules and general rules. This file adds what that one doesn't cover.
 `README.md` has the API contract the mobile app depends on: keep it in sync
-with `api.py`. `CHANGES.md` records past changes, decisions, verification
+with `app/api.py`. `CHANGES.md` records past changes, decisions, verification
 results and open items. Read it at the start of a session, and add a new
 dated entry at the top after significant work.
 
 ## Commands
 
-Run everything from the repo root. `main.py` writes `captures/` and
-`obsidian_cache.py` writes `cache_vault/` relative to the working directory.
+Run everything from the `backend/` folder. `scripts/main.py` writes `captures/` and
+`scripts/obsidian_cache.py` writes `cache_vault/` relative to the working directory.
 
 ```powershell
 .\.venv\Scripts\Activate.ps1
-uvicorn api:app --reload                          # backend; docs at /docs
-python main.py                                    # webcam loop: SPACE = capture + run pipeline, q = quit
-python benchmark_ocr.py <dataset_root>            # dataset path is required
-python sort_packaging_images.py <dataset_root> <output_dir> [--min-text-regions 3]
-python kb_build.py --check                        # validate the verified dataset in kb/
-python kb_build.py                                # validate + build data/kb.sqlite
-python kb_make_scans.py sorted_output/packaging   # draft eval scans from images
+uvicorn app.api:app --reload                          # backend; docs at /docs
+python -m scripts.main                                    # webcam loop: SPACE = capture + run pipeline, q = quit
+python -m scripts.benchmark_ocr <dataset_root>            # dataset path is required
+python -m scripts.sort_packaging_images <dataset_root> <output_dir> [--min-text-regions 3]
+python -m scripts.kb_build --check                        # validate the verified dataset in kb/
+python -m scripts.kb_build                                # validate + build data/kb.sqlite
+python -m scripts.kb_make_scans sorted_output/packaging   # draft eval scans from images
 ```
 
 `kb/` holds the hand-curated, two-person-checked dataset of the 10 supported
@@ -42,11 +42,11 @@ or `description_agent.get_description(generic, brand, dosage)`.
 
 ## Architecture
 
-The phone does OCR and TTS. `api.py` receives the text and calls
+The phone does OCR and TTS. `app/api.py` receives the text and calls
 `pipeline.identify(raw_text, ocr_confidence, cache, meta)`, which runs
 everything after OCR and returns the response dict, including `spoken_text`.
-`main.py` is the local test tool: it runs OCR on a webcam capture
-(`ocr_engines.py`) and calls the same `identify()`.
+`scripts/main.py` is the local test tool: it runs OCR on a webcam capture
+(`scripts/ocr_engines.py`) and calls the same `identify()`.
 
 1. **OCR confidence.** The client computes it. When it's `None`, the check is
    skipped and logged as `ocr_confidence_skipped`; it is not treated as 0.
@@ -61,7 +61,7 @@ everything after OCR and returns the response dict, including `spoken_text`.
    spacing isn't normalized, so "500 mg" and "500mg" get different keys. Each
    call opens and closes its own connection because FastAPI runs requests
    on several threads. Ungrounded descriptions are cached along with their
-   `grounded` flag. `obsidian_cache.py` is the old markdown-vault cache and
+   `grounded` flag. `scripts/obsidian_cache.py` is the old markdown-vault cache and
    isn't used by the pipeline.
 4. **Describe** (`description_agent`). This only runs on a cache miss. Until
    retrieval from `kb/` is built, it generates a general description from the
@@ -81,13 +81,13 @@ everything after OCR and returns the response dict, including `spoken_text`.
    name. The server builds `spoken_text` so the caveats are worded the same
    on every platform.
 
-**LLM provider** (`llm_client.py`):
+**LLM provider** (`app/llm_client.py`):
 - **Groq:** calls the OpenAI-compatible `/chat/completions` endpoint with
   `response_format: json_object`. JSON mode doesn't enforce field names, so
   the schema is also appended to the system prompt.
 - **Ollama:** passes the schema in `format`, which enforces it.
 - **Errors:** both raise `LLMUnavailableError` for unreachable services, rate
-  limits and bad keys. `api.py` maps it to a 503 with a spoken retry message.
+  limits and bad keys. `app/api.py` maps it to a 503 with a spoken retry message.
 
 **Auth** (`api.require_api_key`): checks the `X-API-Key` header against
 `MEDSIGHT_API_KEY` using a constant-time comparison. If the server key isn't
@@ -96,14 +96,14 @@ set, it fails closed with a 503.
 Server output never prints emoji. On a non-UTF-8 stdout the print raises
 `UnicodeEncodeError` and fails the request.
 
-**Local OCR** (prototype only): `ocr_engines.py` uses the **PaddleOCR 3.x
+**Local OCR** (prototype only): `scripts/ocr_engines.py` uses the **PaddleOCR 3.x
 API** (`.predict()`, `results[0].json["res"]["rec_texts"/"rec_scores"]`).
 Don't revert it to the 2.x `.ocr()` call or tuple format. When
 `config/ocr_engine_choice.json` is missing, it falls back to `paddleocr`.
 
 ## Config gotchas
 
-- `config.py` creates `cache_vault/`, `data/`, `logs/` and `config/` as a side
+- `app/config.py` creates `cache_vault/`, `data/`, `logs/` and `config/` as a side
   effect of being imported.
 - `.env` may still contain the old `GEMINI_*` keys. Nothing reads them;
   `.env.example` lists the current variables.

@@ -12,7 +12,7 @@ import json
 
 import requests
 
-import config
+from app import config
 
 
 class LLMUnavailableError(RuntimeError):

@@ -8,8 +8,8 @@ box or insert and an FDA portal lookup, then checked by a second teammate
 because a wrong row here would be spoken to a user as verified fact.
 
 Usage:
-    python kb_build.py           validate, then build data/kb.sqlite
-    python kb_build.py --check   validate only (run after editing the CSVs)
+    python -m scripts.kb_build           validate, then build data/kb.sqlite
+    python -m scripts.kb_build --check   validate only (run after editing the CSVs)
 """
 import csv
 import hashlib
@@ -19,7 +19,7 @@ import sys
 from datetime import date
 from pathlib import Path
 
-import config
+from app import config
 
 KB_FILES = ("products.csv", "ingredients.csv", "passages.csv")
 

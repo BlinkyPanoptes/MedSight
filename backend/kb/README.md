@@ -101,14 +101,14 @@ ingredient.** Only then do they put their name in `checked_by`.
 ### 8. Validate
 From the repo root:
 ```powershell
-.\.venv\Scripts\python kb_build.py --check
+.\.venv\Scripts\python -m scripts.kb_build --check
 ```
 It lists every problem with its file and line number, e.g. a missing
 `checked_by`, ingredient and strength counts that don't match, or an expired
 registration. Fix them and run it again until it says `kb/ is valid`. Then
 build the database the backend reads:
 ```powershell
-.\.venv\Scripts\python kb_build.py
+.\.venv\Scripts\python -m scripts.kb_build
 ```
 
 ## Editing tips
@@ -124,7 +124,7 @@ medicines are refused.
 
 1. Draft them from the dataset photos:
    ```powershell
-   .\.venv\Scripts\python kb_make_scans.py sorted_output/packaging
+   .\.venv\Scripts\python -m scripts.kb_make_scans sorted_output/packaging
    ```
    This writes `eval/scans_draft.jsonl`, with the OCR text of each image.
 2. For each line, set `expected_product_id` to the right `product_id`, or to

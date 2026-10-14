@@ -15,8 +15,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
-import config
-from utils import safe_slug
+from app import config
+from app.utils import safe_slug
 
 import os
 

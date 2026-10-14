@@ -12,7 +12,7 @@ medicines will get descriptions generated only from kb/ passages (planned).
 """
 import json
 
-import llm_client
+from app import llm_client
 
 DESCRIPTION_SYSTEM_PROMPT = """You write very short spoken-aloud descriptions of medicines \
 for a visually impaired user. Safety matters more than completeness.

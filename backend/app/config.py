@@ -12,7 +12,9 @@ except ImportError:
     pass  # python-dotenv is optional; env vars can also be set directly
 
 # --- Paths ---
-BASE_DIR = Path(__file__).resolve().parent
+# The backend/ folder (this file is in backend/app/). Data, logs, the cache
+# vault and kb/ all live directly under it.
+BASE_DIR = Path(__file__).resolve().parent.parent
 CACHE_VAULT_DIR = BASE_DIR / "cache_vault"          # Obsidian-compatible vault
 CACHE_INDEX_PATH = CACHE_VAULT_DIR / "index.json"    # key -> note filename
 # On a cloud host, point these at a persistent disk so the cache and logs

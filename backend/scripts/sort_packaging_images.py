@@ -11,7 +11,7 @@ This is a heuristic, not ground truth. Spot-check both output folders and
 drag any obvious mis-sorts across manually before benchmarking.
 
 Usage:
-    python sort_packaging_images.py DATASET_ROOT OUTPUT_DIR [--min-text-regions 3]
+    python -m scripts.sort_packaging_images DATASET_ROOT OUTPUT_DIR [--min-text-regions 3]
 
 Output:
     OUTPUT_DIR/packaging/<ClassName>/...

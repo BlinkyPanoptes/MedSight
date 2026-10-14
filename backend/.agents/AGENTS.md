@@ -17,10 +17,10 @@ OCR -> LLM parse -> confidence check -> cache lookup -> description agent
 
 - **Phase 1 (done, kept as a test tool):** local prototype tested with a
   laptop webcam and the Kaggle "Pharmaceutical Drugs and Vitamins Dataset V2"
-  images (`main.py`).
+  images (`scripts/main.py`).
 - **Phase 2 (current): backend.** The React Native (Expo dev build) app runs
   OCR on the phone (Apple Vision / ML Kit) and sends the text to the FastAPI
-  backend in this repo (`api.py`), which handles LLM parsing, caching, and
+  backend in this repo (`app/api.py`), which handles LLM parsing, caching, and
   description generation and returns the text to speak. The mobile app
   itself lives in a separate repo and is built by teammates.
 - **Not in scope:** smart-glasses code, on-device LLM, shape/color
@@ -30,24 +30,24 @@ OCR -> LLM parse -> confidence check -> cache lookup -> description agent
 
 ## Project Structure
 
-- `api.py` - FastAPI backend (`/identify`, `/health`) for the mobile app
-- `pipeline.py` - Post-OCR pipeline shared by `api.py` and `main.py`
-- `main.py` - Local webcam prototype (local OCR, then `pipeline.py`)
-- `config.py` - Configuration and settings
-- `ocr_engines.py` - OCR processing (local prototype only)
-- `llm_parse.py` - LLM parsing of OCR text into brand/generic/dosage
-- `llm_client.py` - LLM client: Groq (default) or local Ollama
-- `description_agent.py` - Medicine description generation
-- `confidence_handler.py` - Confidence evaluation
-- `cache_store.py` - SQLite cache used by the pipeline
-- `obsidian_cache.py` - Old markdown-vault cache (no longer used by the pipeline)
-- `tts_output.py` - Text-to-speech functionality
-- `utils.py` - Shared utilities
-- `benchmark_ocr.py` - OCR benchmarking
-- `sort_packaging_images.py` - Sorts dataset images into `sorted_output/`
+- `app/api.py` - FastAPI backend (`/identify`, `/health`) for the mobile app
+- `app/pipeline.py` - Post-OCR pipeline shared by `app/api.py` and `scripts/main.py`
+- `scripts/main.py` - Local webcam prototype (local OCR, then `app/pipeline.py`)
+- `app/config.py` - Configuration and settings
+- `scripts/ocr_engines.py` - OCR processing (local prototype only)
+- `app/llm_parse.py` - LLM parsing of OCR text into brand/generic/dosage
+- `app/llm_client.py` - LLM client: Groq (default) or local Ollama
+- `app/description_agent.py` - Medicine description generation
+- `app/confidence_handler.py` - Confidence evaluation
+- `app/cache_store.py` - SQLite cache used by the pipeline
+- `scripts/obsidian_cache.py` - Old markdown-vault cache (no longer used by the pipeline)
+- `scripts/tts_output.py` - Text-to-speech functionality
+- `app/utils.py` - Shared utilities
+- `scripts/benchmark_ocr.py` - OCR benchmarking
+- `scripts/sort_packaging_images.py` - Sorts dataset images into `sorted_output/`
 - `kb/` - Verified dataset of the 10 supported medicines (see `kb/README.md`)
-- `kb_build.py` - Validates `kb/` and builds `data/kb.sqlite`
-- `kb_make_scans.py` - Drafts evaluation scans from dataset images
+- `scripts/kb_build.py` - Validates `kb/` and builds `data/kb.sqlite`
+- `scripts/kb_make_scans.py` - Drafts evaluation scans from dataset images
 
 Generated, gitignored folders (never commit them): `.venv/`, `cache_vault/`,
 `data/`, `logs/`, `sorted_output/`. Code that writes to `cache_vault/` must create it if it
@@ -58,13 +58,13 @@ does not exist (`os.makedirs(..., exist_ok=True)`).
 - Activate venv (PowerShell): `.\.venv\Scripts\Activate.ps1`
 - Install: `pip install -r requirements.txt` (server only) or
   `pip install -r requirements-local.txt` (adds webcam, OCR, TTS)
-- Run the backend: `uvicorn api:app --reload`
-- Run the local webcam prototype: `python main.py`
-- Benchmark OCR: `python benchmark_ocr.py <dataset_root>` (path to the
+- Run the backend: `uvicorn app.api:app --reload`
+- Run the local webcam prototype: `python -m scripts.main`
+- Benchmark OCR: `python -m scripts.benchmark_ocr <dataset_root>` (path to the
   Kaggle dataset, one subfolder per product class; required)
 - Tests: no automated test suite exists yet. Update this line when one is
   added. Until then, verify changes by running the affected module or
-  `main.py` and reporting what you observed.
+  `scripts/main.py` and reporting what you observed.
 
 ## Medical Safety Rules (highest priority)
 
@@ -72,7 +72,7 @@ This tool is used by people who cannot visually double-check its output, so
 a confident wrong answer is dangerous.
 
 1. Never guess a medicine name, brand, or dosage when OCR or parse
-   confidence is low. Defer to `confidence_handler.py` and tell the user to
+   confidence is low. Defer to `app/confidence_handler.py` and tell the user to
    rescan instead.
 2. Never silently fill in a missing or unreadable name, dosage, or field.
 3. Descriptions of the 10 verified medicines must come only from the

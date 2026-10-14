@@ -11,7 +11,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Iterator, Optional
 
-import config
+from app import config
 
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS medicines (

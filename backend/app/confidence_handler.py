@@ -4,8 +4,8 @@ When OCR/parse/description confidence is below threshold, surface a clear
 warning (console + spoken) and log it to warnings_log.jsonl for later review.
 This is intentionally "log, don't block" for the prototype phase.
 """
-import config
-from utils import append_jsonl
+from app import config
+from app.utils import append_jsonl
 
 
 def check_confidence(stage: str, confidence: float, context: dict) -> bool:

@@ -4,7 +4,7 @@ the same post-OCR pipeline the backend runs (pipeline.py). Useful for testing
 the backend logic without the phone.
 
 Run:
-    python main.py
+    python -m scripts.main
 
 Controls:
     SPACE  - capture frame and run the pipeline on it
@@ -20,11 +20,11 @@ from pathlib import Path
 
 import cv2
 
-import config
-from cache_store import CacheStore
-from ocr_engines import run_ocr
-from pipeline import identify
-from tts_output import speak
+from app import config
+from app.cache_store import CacheStore
+from app.pipeline import identify
+from scripts.ocr_engines import run_ocr
+from scripts.tts_output import speak
 
 
 def load_ocr_engine_choice() -> str:

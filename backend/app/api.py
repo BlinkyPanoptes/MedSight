@@ -4,7 +4,7 @@ read aloud. OCR and text-to-speech run on the phone; this runs the rest of the
 pipeline (see pipeline.py).
 
 Run locally:
-    uvicorn api:app --reload
+    uvicorn app.api:app --reload   (from the backend/ folder)
 
 Endpoints:
     GET  /health    liveness check for the cloud host
@@ -17,10 +17,10 @@ from fastapi import Depends, FastAPI, Header, HTTPException
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
-import config
-from cache_store import CacheStore
-from llm_client import LLMUnavailableError
-from pipeline import identify
+from app import config
+from app.cache_store import CacheStore
+from app.llm_client import LLMUnavailableError
+from app.pipeline import identify
 
 SERVICE_BUSY_MESSAGE = ("The identification service is busy or unavailable right now. "
                         "Please try again in a moment.")

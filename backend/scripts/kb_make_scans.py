@@ -8,14 +8,14 @@ product_id from kb/products.csv, or "unsupported" for medicines outside the
 10, then moves the reviewed lines into kb/eval/scans.jsonl.
 
 Usage:
-    python kb_make_scans.py sorted_output/packaging [--engine paddleocr]
+    python -m scripts.kb_make_scans sorted_output/packaging [--engine paddleocr]
 """
 import argparse
 import json
 from pathlib import Path
 
-import config
-from ocr_engines import ENGINES, run_ocr
+from app import config
+from scripts.ocr_engines import ENGINES, run_ocr
 
 IMAGE_EXTS = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
 DRAFT_PATH = config.KB_DIR / "eval" / "scans_draft.jsonl"

@@ -14,12 +14,12 @@ identify() returns the API response shape:
 """
 from typing import Optional
 
-import config
-from cache_store import CacheStore
-from confidence_handler import build_spoken_caveat, check_confidence
-from description_agent import get_description
-from llm_parse import parse_medicine_text
-from utils import append_jsonl, normalize_key
+from app import config
+from app.cache_store import CacheStore
+from app.confidence_handler import build_spoken_caveat, check_confidence
+from app.description_agent import get_description
+from app.llm_parse import parse_medicine_text
+from app.utils import append_jsonl, normalize_key
 
 NO_TEXT_MESSAGE = ("I couldn't read any text on that packaging. "
                    "Please try again with better lighting or a closer shot.")

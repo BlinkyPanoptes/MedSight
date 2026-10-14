@@ -10,7 +10,7 @@ import difflib
 import json
 import re
 
-import llm_client
+from app import llm_client
 
 PARSE_SYSTEM_PROMPT = """You extract structured medicine info from noisy OCR text \
 scraped off Philippine OTC/branded medicine packaging.

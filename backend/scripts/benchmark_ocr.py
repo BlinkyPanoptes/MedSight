@@ -13,7 +13,7 @@ directly. Instead each engine is scored on two signals per image:
      e.g. .../Biogesic/img001.jpg -> expects "biogesic")
 
 Usage:
-    python benchmark_ocr.py /path/to/kaggle_dataset_root
+    python -m scripts.benchmark_ocr /path/to/kaggle_dataset_root
 
 The dataset root is expected to contain one subfolder per product class,
 matching how the Kaggle dataset ships. If your folder is flat, hit-rate
@@ -28,8 +28,8 @@ import time
 import json
 from pathlib import Path
 
-from ocr_engines import run_paddleocr, run_easyocr
-import config
+from app import config
+from scripts.ocr_engines import run_paddleocr, run_easyocr
 
 IMAGE_EXTS = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
 
@@ -117,7 +117,7 @@ def run_benchmark(dataset_root: Path) -> dict:
 
 def main():
     if len(sys.argv) < 2:
-        print("Usage: python benchmark_ocr.py /path/to/kaggle_dataset_root")
+        print("Usage: python -m scripts.benchmark_ocr /path/to/kaggle_dataset_root")
         sys.exit(1)
 
     dataset_root = Path(sys.argv[1]).expanduser().resolve()
